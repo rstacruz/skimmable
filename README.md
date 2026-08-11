@@ -5,7 +5,10 @@ Claude Code plugin that formats every reply for skimmability — short sentences
 ## Install
 
 ```bash
-/plugin install ~/Dev/skimmable
+git clone https://github.com/rstacruz/skimmable.git ~/.local/share/skimmable
+
+# in claude code:
+/plugin install ~/.local/share/skimmable
 ```
 
 ## Usage
@@ -22,16 +25,6 @@ Nothing to do — skimmable is on from the first prompt of every fresh session.
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
 
-## What stays exact
+## Special thanks
 
-Code, identifiers, paths, commands, URLs, error strings — all verbatim. The style formats, never rewrites. Security warnings and irreversible-action confirmations drop the formatting and use plain prose.
-
-## Files
-
-```
-.claude-plugin/plugin.json    # hook manifest
-src/hooks/skimmable-config.js # shared: flag helpers + SKILL.md resolver
-src/hooks/skimmable-activate.js  # SessionStart hook
-src/hooks/skimmable-tracker.js   # UserPromptSubmit hook
-skills/skimmable/SKILL.md     # the behavior ruleset (mirrors the user skill)
-```
+This plugin is based off of [caveman](https://github.com/JuliusBrussee/caveman/tree/main) by [JuliusBrussee](https://github.com/JuliusBrussee).
