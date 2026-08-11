@@ -91,6 +91,13 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
 
+## Does it save tokens?
+
+No, it uses more tokens.
+
 ## Special thanks
 
 This plugin is based off of [caveman](https://github.com/JuliusBrussee/caveman/tree/main) by [JuliusBrussee](https://github.com/JuliusBrussee).
+
+<!-- BENCHMARK-TABLE-START -->
+<!-- BENCHMARK-TABLE-END -->
