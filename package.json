@@ -2,6 +2,7 @@
   "name": "skimmable",
   "version": "1.0.0",
   "description": "Every pi reply formatted for skimmability: short sentences, lists over paragraphs, code blocks for illustration.",
+  "license": "MIT",
   "keywords": ["pi-package"],
   "pi": {
     "extensions": ["./extensions"],

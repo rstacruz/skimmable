@@ -1,6 +1,6 @@
 # skimmable
 
-Claude Code plugin that formats every reply in a more readable way.
+Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more readable way.
 
 ## Example
 
@@ -36,7 +36,7 @@ After:
 
 ## Install
 
-For Claude Code:
+### Claude Code
 
 ```bash
 /plugin marketplace add https://github.com/rstacruz/skimmable
@@ -45,13 +45,11 @@ For Claude Code:
 
 Update to a new version with `/plugin marketplace update`.
 
-## Install (pi)
+### Pi
 
 ```bash
-pi install git:github.com/rstacruz/skimmable   # or: pi install ~/Dev/skimmable
+pi install git:github.com/rstacruz/skimmable
 ```
-
-Registers in `~/.pi/agent/settings.json` (`pi list` / `pi remove` to manage). Same behavior as Claude Code: on from the first prompt of every fresh session, `stop skimmable` / `normal mode` to turn off.
 
 ## Usage
 

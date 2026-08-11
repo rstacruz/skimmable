@@ -14,9 +14,6 @@ const FALLBACK_RULES =
   "Format every reply for skimmability: short sentences, " +
   'lists over paragraphs, code blocks for illustration. Off only: "stop skimmable" / "normal mode".';
 
-// SKILL.md is the source of truth, read at runtime so edits propagate.
-// Candidates mirror the Claude hooks' fallback chain: extension's repo copy,
-// then the installed pi skill.
 function readSkill(): string {
   const candidates = [
     resolve(__dirname, "..", "skills", "skimmable", "SKILL.md"),
@@ -35,9 +32,6 @@ export default function skimmable(pi: ExtensionAPI) {
 
   pi.on("before_agent_start", async (event) => {
     const prompt = event.prompt.trim().toLowerCase().replace(/\s+/g, " ");
-
-    // Unattended scheduled tasks never get skimmable styling.
-    if (/<scheduled-task\b/.test(prompt)) return;
 
     const rules = readSkill() || FALLBACK_RULES;
 
