@@ -49,6 +49,8 @@ Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more 
 </tr>
 </table>
 
+More examples are available in [examples.md](./examples.md).
+
 ## Install
 
 ### Claude Code
