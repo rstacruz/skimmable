@@ -4,7 +4,7 @@ Claude Code plugin that formats every reply in a more readable way.
 
 ## Example
 
-Before — a normal reply:
+Before, typical Claude:
 
 > Your npm install is failing because there's a peer dependency conflict: the
 > project requires `eslint ^9` but you have `eslint 8.57.0` installed globally,
@@ -14,7 +14,7 @@ Before — a normal reply:
 > `eslint` to `^9.0.0`. If you go the override route, make sure to run
 > `npm install` again and verify the resolved version with `npm ls eslint`.
 
-After — the same reply, skimmable:
+After:
 
 > - **Cause** — peer dependency conflict
 >   - Project requires `eslint ^9`
