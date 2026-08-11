@@ -13,14 +13,8 @@
 
   <rect width="1200" height="336" rx="26" fill="#0D1117"/>
 
-  <!-- ── Title ────────────────────────────────────────────────── -->
-  <g id="title-block" transform="translate(64 0)">
-    <text class="sans" x="0" y="72" font-size="42" font-weight="700" fill="#F0F6FC">How it works</text>
-    <text class="sans" x="0" y="106" font-size="20" fill="#8B949E">Two hooks keep the style on every reply — no config needed.</text>
-  </g>
-
   <!-- ── Pipeline ─────────────────────────────────────────────── -->
-  <g id="pipeline" transform="translate(64 160)">
+  <g id="pipeline" transform="translate(64 120)">
     <g id="stage-1">
       <rect width="300" height="152" rx="14" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
       <text class="mono" x="20" y="34" font-size="18" fill="#D97757">SessionStart</text>
@@ -58,4 +52,7 @@
       </g>
     </g>
   </g>
+
+  <!-- ── Subtext ──────────────────────────────────────────────── -->
+  <text class="sans" x="600" y="312" text-anchor="middle" font-size="20" fill="#8B949E">Two hooks keep the style on every reply — no config needed.</text>
 </svg>

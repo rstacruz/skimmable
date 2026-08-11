@@ -19,7 +19,7 @@
     <text class="sans" x="0" y="76" font-size="78" font-weight="700" fill="#F0F6FC">skimmable</text>
     <text class="sans" x="0" y="118" font-size="23" fill="#C9D1D9">Wall of text → scannable bullet points.</text>
     <line x1="0" y1="164" x2="560" y2="164" stroke="#21262D" stroke-width="1.5"/>
-    <text class="mono" x="0" y="192" font-size="17.5" fill="#8B949E">v1.0.0 · MIT</text>
+    <text class="mono" x="0" y="192" font-size="17.5" fill="#8B949E">MIT · auto-on · /skimmable</text>
   </g>
 
   <!-- ── Vertical divider ─────────────────────────────────────── -->
