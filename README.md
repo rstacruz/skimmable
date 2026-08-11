@@ -91,10 +91,6 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 ## How it works
 
-<p align="center">
-  <img src="./assets/readme/workflow.svg" width="100%" alt="How skimmable works: SessionStart injects the ruleset, UserPromptSubmit re-reinforces it every turn">
-</p>
-
 - **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
