@@ -91,13 +91,39 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
 
-## Does it save tokens?
+## Token cost
 
-No, it uses more tokens.
+**Token cost varies by model.** Skimmable is here first to make prose understandable, not to save tokens.
+
+- Claude Sonnet 5 (Aug 2026): 7% fewer tokens
+- Deepseek v4 Flash: 40% more tokens
+
+<details>
+<summary>Benchmark (Sonnet 5, Aug 2026)</summary>
+
+<!-- BENCHMARK-TABLE-START -->
+
+
+| Task | Normal (tokens) | Skimmable (tokens) | Saved |
+|------|---------------:|-------------------:|------:|
+| Explain React re-render bug | 592 | 473 | 20% |
+| Fix auth middleware token expiry | 497 | 703 | -41% |
+| Set up PostgreSQL connection pool | 717 | 635 | 12% |
+| Explain git rebase vs merge | 714 | 656 | 8% |
+| Refactor callback to async/await | 255 | 268 | -5% |
+| Architecture: microservices vs monolith | 1044 | 1023 | 2% |
+| Review PR for security issues | 398 | 481 | -21% |
+| Docker multi-stage build | 391 | 360 | 8% |
+| Debug PostgreSQL race condition | 491 | 210 | 57% |
+| Implement React error boundary | 887 | 629 | 29% |
+| **Average** | **599** | **544** | **7%** |
+
+*Range: -41%–57% savings across prompts.*
+
+<!-- BENCHMARK-TABLE-END -->
+
+</details>
 
 ## Special thanks
 
 This plugin is based off of [caveman](https://github.com/JuliusBrussee/caveman/tree/main) by [JuliusBrussee](https://github.com/JuliusBrussee).
-
-<!-- BENCHMARK-TABLE-START -->
-<!-- BENCHMARK-TABLE-END -->

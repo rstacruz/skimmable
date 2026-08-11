@@ -12,7 +12,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-activate.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-sessionstart.js\"",
             "timeout": 5,
             "statusMessage": "Loading skimmable mode..."
           }
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-tracker.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-userpromptsubmit.js\"",
             "timeout": 5,
             "statusMessage": "Tracking skimmable mode..."
           }

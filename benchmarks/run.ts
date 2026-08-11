@@ -5,10 +5,10 @@
  *  p-queue. Same CLI flags, same results/*.json schema, so consumers
  *  (README table, results JSON) are unchanged.
  *
- *  Runs `claude -p --bare` (no API key needed). --bare skips hooks and plugin
- *  sync, so the globally-installed skimmable plugin can't contaminate the
- *  "normal" baseline; the ruleset is injected explicitly with
- *  --append-system-prompt, mirroring how the plugin's SessionStart hook ships it.
+ *  Runs `claude -p` (no --bare: --bare's auth path doesn't pick up this
+ *  machine's login, so hooks/plugins run for every call). This means the
+ *  "normal" baseline is NOT clean of globally-installed plugins (skimmable,
+ *  ponytail, etc.) that inject via SessionStart — known limitation.
  */
 
 import { parseArgs } from "node:util";
@@ -31,7 +31,7 @@ const CALL_TIMEOUT_MS = 300_000;
 
 type Prompt = { id: string; category: string; prompt: string };
 type CallResult = { input_tokens: number; output_tokens: number; text: string; stop_reason?: string };
-type ClaudeResponse = { is_error?: boolean; usage: { input_tokens: number; output_tokens: number }; result?: string; stop_reason?: string };
+type ClaudeResponse = { type: string; is_error?: boolean; usage: { input_tokens: number; output_tokens: number }; result?: string; stop_reason?: string };
 type Entry = Prompt & { normal: CallResult[]; skimmable: CallResult[] };
 type Row = { id: string; category: string; prompt: string; normal_median: number; skimmable_median: number; savings_pct: number };
 type Summary = { avg_savings: number; min_savings: number; max_savings: number; avg_normal: number; avg_skimmable: number };
@@ -66,17 +66,18 @@ const claudeVersion = async (): Promise<string> => {
   }
 };
 
-/** One `claude -p --bare --output-format json` call, with retry. */
+/** One `claude -p --output-format json` call, with retry. */
 async function callClaude(prompt: string, systemPrompt: string | null, model: string | null, cwd: string): Promise<CallResult> {
-  const cmd = ["claude", "-p", "--bare", "--output-format", "json"];
+  const cmd = ["claude", "-p", "--output-format", "json"];
   if (model) cmd.push("--model", model);
   if (systemPrompt) cmd.push("--append-system-prompt", systemPrompt);
   cmd.push(prompt);
-  // --tools "" must come AFTER the prompt (variadic; it would swallow the
-  // prompt otherwise). Implementation prompts ("implement X") make the model
-  // attempt Write, and the tool loop stalls on non-TTY stdin. Pure-text
+  // Disables all tools: implementation prompts ("implement X") make the
+  // model attempt Write, and the tool loop stalls on non-TTY stdin. Pure-text
   // generation also keeps token counts comparable across modes.
-  cmd.push("--tools", "");
+  // Equals form (not "--tools", "") since --tools is variadic and would
+  // otherwise swallow the next positional arg.
+  cmd.push("--tools=");
 
   const delays = [5_000, 10_000, 20_000];
   for (let attempt = 0; ; attempt++) {
@@ -92,8 +93,11 @@ async function callClaude(prompt: string, systemPrompt: string | null, model: st
         new Response(proc.stderr).text(),
       ]);
       const exit = await proc.exited;
-      const data = JSON.parse(stdout) as ClaudeResponse;
-      if (exit !== 0 || data.is_error) throw new Error(`exit=${exit} stderr=${stderr.slice(-300)}`);
+      // --output-format json now returns an array of stream messages
+      // (system/assistant/result), not a flat object; usage/result live on
+      // the "result" message.
+      const data = (JSON.parse(stdout) as ClaudeResponse[]).find((m) => m.type === "result");
+      if (exit !== 0 || !data || data.is_error) throw new Error(`exit=${exit} stderr=${stderr.slice(-300)}`);
       return {
         input_tokens: data.usage.input_tokens,
         output_tokens: data.usage.output_tokens,
@@ -256,7 +260,7 @@ function dryRun(prompts: Prompt[], model: string | null, trials: number, workers
   console.log(`Prompts: ${prompts.length}`);
   console.log(`Workers: ${workers}`);
   console.log(`Total API calls: ${prompts.length * 2 * trials}`);
-  console.log(`Runs: claude -p --bare${model ? ` --model ${model}` : ""}`);
+  console.log(`Runs: claude -p${model ? ` --model ${model}` : ""}`);
   console.log();
   for (const p of prompts) {
     const preview = p.prompt.length > 80 ? `${p.prompt.slice(0, 80)}...` : p.prompt;
