@@ -1,5 +1,11 @@
 # Changelog
 
+## (Unreleased)
+
+### 🔧 Improvements
+
+- **Pi extension:** Use less tokens on long conversations by using short reminders.
+
 ## v1.0.1 - 2026-08-11
 
 ### 🔧 Improvements

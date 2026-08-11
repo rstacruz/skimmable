@@ -14,6 +14,12 @@ const FALLBACK_RULES =
   "Format every reply for skimmability: short sentences, " +
   'lists over paragraphs, code blocks for illustration. Off only: "stop skimmable" / "normal mode".';
 
+// Per-turn reminder when already on
+const REMINDER =
+  "SKIMMABLE ACTIVE — format replies for skimmability. " +
+  "Short sentences. Lists over paragraphs. Code blocks for illustration. " +
+  "Code, identifiers, paths, commands, URLs, error strings: verbatim.";
+
 function readSkill(): string {
   const candidates = [
     resolve(__dirname, "..", "skills", "skimmable", "SKILL.md"),
@@ -48,13 +54,14 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (START_RE.test(prompt)) {
       on = true;
-      return;
+      // Emit the full ruleset on the activation turn itself.
+      return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
     }
 
     if (!on) return;
 
     // Per-turn reinforcement, so the style survives compaction — same
     // mechanism as the Claude plugin's UserPromptSubmit additionalContext.
-    return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
+    return { systemPrompt: event.systemPrompt + "\n\n" + REMINDER };
   });
 }
