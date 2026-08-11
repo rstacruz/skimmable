@@ -12,10 +12,6 @@
 - Ported benchmark script from Python to TypeScript.
 - Renamed hook files to reflect their roles.
 
-## Next
-
-- ...
-
 ## v1.0.0 - 2026-08-11
 
 Initial release
