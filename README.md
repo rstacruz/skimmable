@@ -95,11 +95,8 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 **Token cost varies by model.** Skimmable is here first to make prose understandable, not to save tokens.
 
-- Claude Sonnet 5 (Aug 2026): 7% fewer tokens
-- Deepseek v4 Flash: 40% more tokens
-
 <details>
-<summary>Benchmark (Sonnet 5, Aug 2026)</summary>
+<summary>Claude Sonnet 5 (Aug 2026): 7% fewer tokens (Aug 2026)</summary>
 
 <!-- BENCHMARK-TABLE-START -->
 
@@ -121,6 +118,28 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 *Range: -41%–57% savings across prompts.*
 
 <!-- BENCHMARK-TABLE-END -->
+
+</details>
+
+<details>
+<summary>Deepseek v4 Flash: 45% more tokens (Aug 2026)</summary>
+
+
+| Task | Normal (tokens) | Skimmable (tokens) | Saved |
+|------|---------------:|-------------------:|------:|
+| Explain React re-render bug | 1740 | 1023 | 41% |
+| Fix auth middleware token expiry | 3806 | 5168 | -36% |
+| Set up PostgreSQL connection pool | 2514 | 12635 | -403% |
+| Explain git rebase vs merge | 896 | 855 | 5% |
+| Refactor callback to async/await | 583 | 1343 | -130% |
+| Architecture: microservices vs monolith | 2585 | 760 | 71% |
+| Review PR for security issues | 2105 | 849 | 60% |
+| Docker multi-stage build | 7927 | 2130 | 73% |
+| Debug PostgreSQL race condition | 1404 | 2429 | -73% |
+| Implement React error boundary | 4204 | 6798 | -62% |
+| **Average** | **2776** | **3399** | **-45%** |
+
+*Range: -403%–73% savings across prompts.*
 
 </details>
 
