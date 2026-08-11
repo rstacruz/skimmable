@@ -48,13 +48,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (START_RE.test(prompt)) {
       on = true;
-      return {
-        message: {
-          customType: "skimmable",
-          content: "SKIMMABLE MODE ACTIVE\n\n" + rules,
-          display: true,
-        },
-      };
+      return;
     }
 
     if (!on) return;
