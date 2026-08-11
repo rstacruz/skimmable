@@ -45,6 +45,14 @@ For Claude Code:
 
 Update to a new version with `/plugin marketplace update`.
 
+## Install (pi)
+
+```bash
+pi install git:github.com/rstacruz/skimmable   # or: pi install ~/Dev/skimmable
+```
+
+Registers in `~/.pi/agent/settings.json` (`pi list` / `pi remove` to manage). Same behavior as Claude Code: on from the first prompt of every fresh session, `stop skimmable` / `normal mode` to turn off.
+
 ## Usage
 
 Nothing to do — skimmable is on from the first prompt of every fresh session.

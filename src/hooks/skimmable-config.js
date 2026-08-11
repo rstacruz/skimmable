@@ -2,11 +2,9 @@
 // skimmable — shared helpers for the skimmable hooks
 //
 // State: one flag file at $CLAUDE_CONFIG_DIR/.skimmable-active.
-//   - exists  → skimmable ON  (default: written at session start)
-//   - absent  → skimmable OFF (user said "stop skimmable")
-//
-// Every helper silent-fails on any error — a hook must never block
-// session start or prompt submission.
+//   exists → ON (default: written at session start); absent → OFF.
+// Every helper silent-fails — hooks must never block session start or
+// prompt submission.
 
 const fs = require('fs');
 const path = require('path');
@@ -23,11 +21,10 @@ function flagPath() {
   return path.join(claudeDir(), FLAG_NAME);
 }
 
-// Symlink-safe flag write (caveman's safeWriteFlag pattern).
-// Refuses a symlinked flag target (the clobber vector); resolves a symlinked
-// parent dir and verifies ownership, so a legitimately symlinked ~/.claude
-// still works while an attacker-planted one is refused. O_NOFOLLOW where
-// supported, atomic temp + rename, 0600. Silent-fails.
+// Symlink-safe write: refuse a symlinked flag target (clobber vector);
+// resolve a symlinked parent dir and verify ownership — legit ~/.claude
+// works, attacker-planted refused. O_NOFOLLOW, atomic temp+rename, 0600.
+// Silent-fails.
 function safeWriteFlag(content) {
   try {
     const dir = path.dirname(flagPath());
@@ -75,8 +72,7 @@ function safeWriteFlag(content) {
   }
 }
 
-// Symlink-safe, size-capped flag read. True only when the flag holds "1".
-// Never follows symlinks and never slurps attacker bytes into context.
+// Symlink-safe, size-capped read; true only when the flag holds "1".
 function isOn() {
   try {
     const p = flagPath();
@@ -108,12 +104,10 @@ function clearFlag() {
   } catch (e) { /* already gone */ }
 }
 
-// Read SKILL.md — the single source of truth for behavior, read at runtime
-// so edits propagate without touching the hooks. Tried in order:
-//   1. $CLAUDE_PLUGIN_ROOT/skills/skimmable/SKILL.md  (Claude Code sets
-//      CLAUDE_PLUGIN_ROOT when invoking plugin hooks)
-//   2. ../../skills/skimmable/SKILL.md                (repo checkout)
-// Returns the body with YAML frontmatter stripped, or '' if not found.
+// Read SKILL.md at runtime so edits propagate without touching the hooks.
+// Tried in order: 1. $CLAUDE_PLUGIN_ROOT/skills/skimmable/SKILL.md
+// (Claude Code sets CLAUDE_PLUGIN_ROOT for hooks); 2. repo checkout
+// ../../skills/skimmable/SKILL.md. Strips YAML frontmatter; '' if not found.
 function readSkill() {
   const candidates = [];
   if (process.env.CLAUDE_PLUGIN_ROOT) {
@@ -130,7 +124,7 @@ function readSkill() {
   return '';
 }
 
-// Minimum viable ruleset when SKILL.md is missing (e.g. hand-copied hooks).
+// Fallback ruleset when SKILL.md is missing.
 const FALLBACK_RULES =
   'Format every reply for skimmability: short sentences, ' +
   'lists over paragraphs, code blocks for illustration. ' +

@@ -1,17 +1,9 @@
 #!/usr/bin/env node
 // skimmable — Claude Code UserPromptSubmit hook
-//
-// 1. Per-turn reinforcement: when skimmable is on, emit a short
-//    additionalContext reminder so the style survives context compaction
-//    and competing plugin injections (caveman's pattern).
-// 2. Natural-language toggle:
-//      "stop skimmable" / "normal mode" / "disable skimmable" → off
-//      "skimmable" / "skimmable mode" / "reply skimmable" → on
-//    Both announce themselves via additionalContext; activation emits the
-//    full ruleset so it works mid-session without a session restart.
-//
-// Skips scheduled-task prompts entirely — unattended runs must never get
-// skimmable styling (caveman's rule, same reasoning).
+// 1. Per-turn reinforcement reminder when on (survives compaction).
+// 2. Natural-language toggle: "stop skimmable"/"normal mode" → off;
+//    "skimmable mode" → on, emitting the full ruleset mid-session.
+// Skips scheduled-task prompts.
 
 const fs = require('fs');
 const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES } = require('./skimmable-config');
@@ -21,8 +13,7 @@ const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate sk
 
 let input = '';
 process.stdin.on('data', chunk => { input += chunk; });
-// Abnormal stdin close (broken pipe, parent crash): exit 0 — hooks must
-// never surface as failures (#538).
+// Abnormal stdin close → exit 0; hooks must never surface as failures.
 process.stdin.on('error', () => process.exit(0));
 process.stdin.on('end', () => {
   try {
