@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="360" viewBox="0 0 1200 360"
+     role="img" aria-labelledby="title desc">
+  <title id="title">skimmable — every reply formatted for skimmability</title>
+  <desc id="desc">Plugin title card for skimmable. Left: plugin name and tagline. Right: the same reply first as compressed prose, then reformatted as bulleted cause and fixes.</desc>
+
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="360" rx="26" fill="#0D1117"/>
+
+  <!-- ── Title block ─────────────────────────────────────────── -->
+  <g id="title-block" transform="translate(64 88)">
+    <text class="mono" x="0" y="0" font-size="19" letter-spacing="4" fill="#D97757">CLAUDE CODE · PI PLUGIN</text>
+    <text class="sans" x="0" y="76" font-size="78" font-weight="700" fill="#F0F6FC">skimmable</text>
+    <text class="sans" x="0" y="118" font-size="23" fill="#C9D1D9">Wall of text → scannable bullet points.</text>
+    <line x1="0" y1="164" x2="560" y2="164" stroke="#21262D" stroke-width="1.5"/>
+    <text class="mono" x="0" y="192" font-size="17.5" fill="#8B949E">v1.0.0 · MIT</text>
+  </g>
+
+  <!-- ── Vertical divider ─────────────────────────────────────── -->
+  <line x1="652" y1="76" x2="652" y2="336" stroke="#21262D" stroke-width="1.5"/>
+
+  <!-- ── Before/after proof ───────────────────────────────────── -->
+  <g id="proof" transform="translate(676 40)">
+    <rect width="460" height="276" rx="14" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
+
+    <text class="mono" x="24" y="34" font-size="18" letter-spacing="2" fill="#8B949E">BEFORE — RAW PROSE</text>
+    <g class="sans" font-size="18.5" fill="#8B949E">
+      <text x="24" y="64">Your npm install is failing because</text>
+      <text x="24" y="86">of a peer dependency conflict …</text>
+    </g>
+
+    <circle cx="230" cy="122" r="13" fill="none" stroke="#D97757" stroke-width="1.5"/>
+    <polygon points="222,115 238,115 230,128" fill="#D97757"/>
+
+    <text class="mono" x="24" y="158" font-size="18" letter-spacing="2" fill="#D97757">AFTER — SKIMMABLE</text>
+    <rect x="24" y="174" width="7" height="7" fill="#D97757"/>
+    <text class="sans" x="40" y="182" font-size="18.5"><tspan fill="#F0F6FC" font-weight="700">Cause</tspan><tspan fill="#C9D1D9"> — peer dependency conflict</tspan></text>
+    <text class="mono" x="48" y="204" font-size="17.5" fill="#8B949E">project needs eslint ^9 · have 8.57.0</text>
+    <rect x="24" y="218" width="7" height="7" fill="#D97757"/>
+    <text class="sans" x="40" y="226" font-size="18.5"><tspan fill="#F0F6FC" font-weight="700">Fix</tspan><tspan fill="#C9D1D9"> — update the global install</tspan></text>
+    <text class="mono" x="48" y="248" font-size="17.5" fill="#8B949E">npm install -g eslint@9</text>
+  </g>
+</svg>

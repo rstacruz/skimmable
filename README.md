@@ -2,6 +2,10 @@
 
 Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more readable way.
 
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="skimmable — a wall of text becomes scannable bullet points">
+</p>
+
 ## Example
 
 <table>
@@ -86,6 +90,10 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 > Summarise the top hackernews article in /skimmable format
 
 ## How it works
+
+<p align="center">
+  <img src="./assets/readme/workflow.svg" width="100%" alt="How skimmable works: SessionStart injects the ruleset, UserPromptSubmit re-reinforces it every turn">
+</p>
 
 - **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
