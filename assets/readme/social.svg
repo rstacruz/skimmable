@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1280"
+   height="640"
+   viewBox="0 0 1280 640"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg11"
+   sodipodi:docname="social.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview11"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.80548453"
+     inkscape:cx="529.49496"
+     inkscape:cy="385.48226"
+     inkscape:window-width="1920"
+     inkscape:window-height="1115"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg11" />
+  <title
+     id="title">skimmable — every reply formatted for skimmability</title>
+  <desc
+     id="desc">Social card for skimmable. Left: plugin name and tagline. Right: the same reply first as compressed prose, then reformatted as bulleted cause and fixes.</desc>
+  <defs
+     id="defs1">
+    <style
+       id="style1">
+      .sans { font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;PingFang SC&quot;, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+  <rect
+     width="1280"
+     height="640"
+     fill="#0D1117"
+     id="rect1" />
+  <text
+     class="sans"
+     x="72.180435"
+     y="496.07315"
+     font-size="31.0458px"
+     fill="#c9d1d9"
+     id="text3"
+     style="line-height:1.25;stroke-width:1.34982"><tspan
+       sodipodi:role="line"
+       id="tspan24"
+       x="72.180435"
+       y="496.07315"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1.25;font-family:Geist;-inkscape-font-specification:Geist;stroke-width:1.34982">Wall of text <tspan
+   style="line-height:1.25;fill:#d97757;fill-opacity:1;stroke-width:1.34982"
+   id="tspan23">→</tspan></tspan><tspan
+       sodipodi:role="line"
+       id="tspan25"
+       x="72.180435"
+       y="535.29364"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1.25;font-family:Geist;-inkscape-font-specification:Geist;stroke-width:1.34982">scannable bullet points</tspan></text>
+  <text
+     class="sans"
+     x="63.906456"
+     y="143.90652"
+     font-size="64.281px"
+     fill="#c9d1d9"
+     id="text3-7"
+     style="font-family:'-apple-system', BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;stroke-width:2.79483"><tspan
+       sodipodi:role="line"
+       id="tspan25-6"
+       x="63.906456"
+       y="143.90652"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Geist;-inkscape-font-specification:'Geist Bold';fill:#f9f9f9;stroke-width:2.79483">skimmable</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:Geist;-inkscape-font-specification:Geist;writing-mode:lr-tb;direction:ltr;fill:#000000;stroke-width:1"
+     x="-42.293068"
+     y="310.97839"
+     id="text14"><tspan
+       sodipodi:role="line"
+       id="tspan14"
+       style="stroke-width:1"
+       x="-42.293068"
+       y="310.97839"></tspan></text>
+  <g
+     id="proof"
+     transform="matrix(1.1138878,0,0,1.1138878,747.0589,166.07384)">
+    <rect
+       width="628.87036"
+       height="400.57529"
+       rx="19.13953"
+       fill="#161b22"
+       stroke="#30363d"
+       stroke-width="2.11291"
+       id="rect3"
+       x="-201.8295"
+       y="-67.750816" />
+    <text
+       class="mono"
+       x="-169.04665"
+       y="-22.587103"
+       font-size="24.6104px"
+       letter-spacing="2"
+       fill="#8b949e"
+       id="text4"
+       style="stroke-width:1.36724">BEFORE</text>
+    <g
+       class="sans"
+       font-size="18.5px"
+       fill="#8b949e"
+       id="g6"
+       transform="matrix(1.3672442,0,0,1.3672442,-201.86051,-50.32341)">
+      <text
+         x="24"
+         y="50.286282"
+         id="text5"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Geist;-inkscape-font-specification:Geist"
+           id="tspan15">Your npm install is failing because</tspan></text>
+      <text
+         x="24"
+         y="73.657654"
+         id="text6"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Geist;-inkscape-font-specification:Geist"
+           id="tspan16">of a peer dependency conflict …</tspan></text>
+    </g>
+    <polygon
+       points="238,115 230,128 222,115 "
+       fill="#d97757"
+       id="polygon6"
+       transform="matrix(1.3672442,0,0,1.3672442,-201.86051,-65.323409)" />
+    <text
+       class="mono"
+       x="-169.04665"
+       y="152.57619"
+       font-size="24.6104px"
+       letter-spacing="2"
+       font-weight="600"
+       fill="#d97757"
+       id="text7"
+       style="stroke-width:1.36724">AFTER</text>
+    <rect
+       x="-169.04665"
+       y="180.07709"
+       width="9.5707092"
+       height="9.5707092"
+       fill="#d97757"
+       id="rect7"
+       style="stroke-width:1.36724" />
+    <text
+       class="sans"
+       x="-147.17075"
+       y="191.01505"
+       font-size="25.294px"
+       id="text8"
+       style="stroke-width:1.36724"><tspan
+         fill="#f0f6fc"
+         font-weight="700"
+         id="tspan7"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Geist;-inkscape-font-specification:'Geist Bold';stroke-width:1.36724">Cause <tspan
+   style="font-weight:normal"
+   id="tspan21">—</tspan> <tspan
+   style="font-weight:normal"
+   id="tspan20">peer dependency conflict</tspan></tspan></text>
+    <text
+       class="mono"
+       x="-147.48279"
+       y="221.09442"
+       font-size="23.9268px"
+       fill="#8b949e"
+       id="text9"
+       style="stroke-width:1.36724"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Geist Mono';-inkscape-font-specification:'Geist Mono'"
+         id="tspan17">project needs eslint ^9 · have 8.57.0</tspan></text>
+    <rect
+       x="-169.04665"
+       y="247.73584"
+       width="9.5707092"
+       height="9.5707092"
+       fill="#d97757"
+       id="rect9"
+       style="stroke-width:1.36724" />
+    <text
+       class="sans"
+       x="-147.17075"
+       y="258.6738"
+       font-size="25.294px"
+       id="text10"
+       style="stroke-width:1.36724"><tspan
+         fill="#f0f6fc"
+         font-weight="700"
+         id="tspan9"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Geist;-inkscape-font-specification:'Geist Bold';stroke-width:1.36724">Fix <tspan
+   style="font-weight:normal"
+   id="tspan22">—</tspan> <tspan
+   style="font-weight:normal"
+   id="tspan19">update the global install</tspan></tspan></text>
+    <text
+       class="mono"
+       x="-147.48279"
+       y="288.75317"
+       font-size="23.9268px"
+       fill="#8b949e"
+       id="text11"
+       style="stroke-width:1.36724"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Geist Mono';-inkscape-font-specification:'Geist Mono'"
+         id="tspan18">npm install -g eslint@9</tspan></text>
+  </g>
+</svg>

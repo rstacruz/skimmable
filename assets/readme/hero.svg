@@ -35,7 +35,6 @@
       <text x="24" y="86">of a peer dependency conflict …</text>
     </g>
 
-    <circle cx="230" cy="122" r="13" fill="none" stroke="#D97757" stroke-width="1.5"/>
     <polygon points="222,115 238,115 230,128" fill="#D97757"/>
 
     <text class="mono" x="24" y="158" font-size="18" letter-spacing="2" fill="#D97757">AFTER — SKIMMABLE</text>
