@@ -2,7 +2,7 @@ Compares output token counts of normal vs skimmable replies on a fixed set of 10
 
 ```bash
 cd benchmarks
-pnpm install
+bun install
 
 # preview, no API calls
 bun run.ts --dry-run
