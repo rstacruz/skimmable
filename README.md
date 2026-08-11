@@ -36,12 +36,14 @@ After:
 
 ## Install
 
-```bash
-git clone https://github.com/rstacruz/skimmable.git ~/.local/share/skimmable
+For Claude Code:
 
-# in claude code:
-/plugin install ~/.local/share/skimmable
+```bash
+/plugin marketplace add https://github.com/rstacruz/skimmable
+/plugin install skimmable@skimmable
 ```
+
+Update to a new version with `/plugin marketplace update`.
 
 ## Usage
 
