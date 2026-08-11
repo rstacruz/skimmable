@@ -6,8 +6,6 @@ Real outputs from the benchmark suite (`benchmarks/`). The same prompt was answe
 
 > Why is my React component re-rendering on every state update even though the props haven't changed? I'm passing an object as a prop.
 
-Skimmable uses **43% fewer tokens** (2186 → 1256).
-
 <details>
 <summary><b>Before</b> — normal output (2186 tokens)</summary>
 
@@ -239,8 +237,6 @@ Skimmable uses **43% fewer tokens** (2186 → 1256).
 
 > We have a monolithic Django app that's getting slow. The team is debating microservices. What are the key factors to consider before splitting up the monolith?
 
-Skimmable uses **40% fewer tokens** (2585 → 1558, median across runs).
-
 <details>
 <summary><b>Before</b> — normal output (2585 tokens)</summary>
 
@@ -379,8 +375,6 @@ Skimmable uses **40% fewer tokens** (2585 → 1558, median across runs).
 ## Docker multi-stage build
 
 > Write a multi-stage Dockerfile for a Node.js TypeScript application that minimizes the final image size. The app uses npm and needs to compile TypeScript before running.
-
-Skimmable uses **28% fewer tokens** (7927 → 5667, median across runs).
 
 <details>
 <summary><b>Before</b> — normal output (7927 tokens)</summary>
