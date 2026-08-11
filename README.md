@@ -93,8 +93,6 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 ## Token cost
 
-**Token cost varies by model.** Skimmable is here first to make prose understandable, not to save tokens.
-
 <details>
 <summary>Claude Sonnet 5 (Aug 2026): 7% fewer tokens (Aug 2026)</summary>
 
