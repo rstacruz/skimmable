@@ -85,19 +85,11 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 > Summarise the top hackernews article in /skimmable format
 
-
 ## How it works
 
 - **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
-
-<!--
-## Benchmark
--->
-
-<!-- BENCHMARK-TABLE-START -->
-<!-- BENCHMARK-TABLE-END -->
 
 ## Special thanks
 

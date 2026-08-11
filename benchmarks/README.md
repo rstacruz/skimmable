@@ -2,13 +2,15 @@ Compares output token counts of normal vs skimmable replies on a fixed set of 10
 
 ```bash
 cd benchmarks
-pip install -r requirements.txt
+pnpm install
 
 # preview, no API calls
-python run.py --dry-run
+bun run.ts --dry-run
 
 # Update readme
-python run.py --update-readme --trials 3 --workers 5
+bun run.ts --update-readme --trials 3 --workers 5
 ```
+
+The script is a Bun/TypeScript port of the original `run.py` (still in this dir until parity is confirmed); worker concurrency uses `p-queue`.
 
 Adapted from <https://github.com/JuliusBrussee/caveman/tree/main/benchmarks>.
