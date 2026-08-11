@@ -4,7 +4,12 @@ Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more 
 
 ## Example
 
-Before, typical Claude:
+<table>
+<tr>
+<th>Before:</th>
+<th>After:</th>
+<tr>
+<td>
 
 > Your npm install is failing because there's a peer dependency conflict: the
 > project requires `eslint ^9` but you have `eslint 8.57.0` installed globally,
@@ -14,7 +19,8 @@ Before, typical Claude:
 > `eslint` to `^9.0.0`. If you go the override route, make sure to run
 > `npm install` again and verify the resolved version with `npm ls eslint`.
 
-After:
+</td>
+<td>
 
 > - **Cause** — peer dependency conflict
 >   - Project requires `eslint ^9`
@@ -34,13 +40,17 @@ After:
 > 
 > Then run `npm install` and verify with `npm ls eslint` — it should resolve to `9.x`.
 
+
+</td>
+</tr>
+</table>
+
 ## Install
 
 ### Claude Code
 
 ```bash
-/plugin marketplace add https://github.com/rstacruz/skimmable
-/plugin install skimmable@skimmable
+claude plugin marketplace add https://github.com/rstacruz/skimmable && claude plugin install skimmable@skimmable
 ```
 
 Update to a new version with `/plugin marketplace update`.
@@ -51,6 +61,14 @@ Update to a new version with `/plugin marketplace update`.
 pi install git:github.com/rstacruz/skimmable
 ```
 
+### All other agents
+
+For other agents, it doesn't auto-enable, but you may invoke it manually via `/skimmable`.
+
+```bash
+npx skills add rstacruz/skimmable
+```
+
 ## Usage
 
 Nothing to do — skimmable is on from the first prompt of every fresh session.
@@ -59,11 +77,33 @@ Nothing to do — skimmable is on from the first prompt of every fresh session.
 - **Turn it back on** — say `skimmable`. Works mid-session, no restart.
 - **New session** — on again by default.
 
+## For Markdown files
+
+Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md) skill. It works great on formatting plans:
+
+> Make plan.md /skimmable
+
+> Summarise the top hackernews article in /skimmable format
+
+
 ## How it works
 
 - **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
+
+## Benchmark
+
+Compares output tokens of normal vs skimmable replies on 10 dev prompts (3 trials each) via `claude -p --bare` — no API key needed. `--bare` skips hooks/plugins so the plugin can't contaminate the baseline.
+
+```bash
+cd benchmarks
+python run.py --dry-run        # preview, no API calls
+python run.py --update-readme  # run and update the table below
+```
+
+<!-- BENCHMARK-TABLE-START -->
+<!-- BENCHMARK-TABLE-END -->
 
 ## Special thanks
 
