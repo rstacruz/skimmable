@@ -1,10 +1,10 @@
-# skimmable
-
-Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more readable way.
-
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%" alt="skimmable — a wall of text becomes scannable bullet points">
 </p>
+
+# skimmable
+
+Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more readable way.
 
 ## Example
 
