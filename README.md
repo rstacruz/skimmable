@@ -92,15 +92,9 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 - **UserPromptSubmit hook** re-reinforces the style every turn, so it survives context compaction; it also implements the natural-language toggle.
 - **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
 
+<!--
 ## Benchmark
-
-Compares output tokens of normal vs skimmable replies on 10 dev prompts (3 trials each) via `claude -p --bare` — no API key needed. `--bare` skips hooks/plugins so the plugin can't contaminate the baseline.
-
-```bash
-cd benchmarks
-python run.py --dry-run        # preview, no API calls
-python run.py --update-readme  # run and update the table below
-```
+-->
 
 <!-- BENCHMARK-TABLE-START -->
 <!-- BENCHMARK-TABLE-END -->
