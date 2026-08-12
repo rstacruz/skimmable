@@ -2,8 +2,8 @@
 /** Benchmark skimmable vs normal Claude output token counts.
  *
  *  Port of benchmarks/run.py to Bun + TypeScript; worker concurrency via
- *  p-queue. Same CLI flags, same results/*.json schema, so consumers
- *  (README table, results JSON) are unchanged.
+ *  src/utils/pqueue.ts (a local p-queue replacement). Same CLI flags, same
+ *  results/*.json schema, so consumers (README table, results JSON) are unchanged.
  *
  *  Runs `claude -p` (no --bare: --bare's auth path doesn't pick up this
  *  machine's login, so hooks/plugins run for every call). This means the
@@ -16,7 +16,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import PQueue from "p-queue";
+import { PromiseQueue } from "../src/utils/pqueue";
+import { callClaude, type CallResult } from "../src/utils/claude";
 
 const SCRIPT_VERSION = "1.3.0";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -27,11 +28,8 @@ const README_PATH = join(REPO_DIR, "README.md");
 const RESULTS_DIR = join(HERE, "results");
 const BENCHMARK_START = "<!-- BENCHMARK-TABLE-START -->";
 const BENCHMARK_END = "<!-- BENCHMARK-TABLE-END -->";
-const CALL_TIMEOUT_MS = 300_000;
 
 type Prompt = { id: string; category: string; prompt: string };
-type CallResult = { input_tokens: number; output_tokens: number; text: string; stop_reason?: string };
-type ClaudeResponse = { type: string; is_error?: boolean; usage: { input_tokens: number; output_tokens: number }; result?: string; stop_reason?: string };
 type Entry = Prompt & { normal: CallResult[]; skimmable: CallResult[] };
 type Row = { id: string; category: string; prompt: string; normal_median: number; skimmable_median: number; savings_pct: number };
 type Summary = { avg_savings: number; min_savings: number; max_savings: number; avg_normal: number; avg_skimmable: number };
@@ -66,53 +64,6 @@ const claudeVersion = async (): Promise<string> => {
   }
 };
 
-/** One `claude -p --output-format json` call, with retry. */
-async function callClaude(prompt: string, systemPrompt: string | null, model: string | null, cwd: string): Promise<CallResult> {
-  const cmd = ["claude", "-p", "--output-format", "json"];
-  if (model) cmd.push("--model", model);
-  if (systemPrompt) cmd.push("--append-system-prompt", systemPrompt);
-  cmd.push(prompt);
-  // Disables all tools: implementation prompts ("implement X") make the
-  // model attempt Write, and the tool loop stalls on non-TTY stdin. Pure-text
-  // generation also keeps token counts comparable across modes.
-  // Equals form (not "--tools", "") since --tools is variadic and would
-  // otherwise swallow the next positional arg.
-  cmd.push("--tools=");
-
-  const delays = [5_000, 10_000, 20_000];
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const proc = Bun.spawn(cmd, {
-        cwd,
-        stdout: "pipe",
-        stderr: "pipe",
-        signal: AbortSignal.timeout(CALL_TIMEOUT_MS), // kills child on timeout
-      });
-      const [stdout, stderr] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-      const exit = await proc.exited;
-      // --output-format json now returns an array of stream messages
-      // (system/assistant/result), not a flat object; usage/result live on
-      // the "result" message.
-      const data = (JSON.parse(stdout) as ClaudeResponse[]).find((m) => m.type === "result");
-      if (exit !== 0 || !data || data.is_error) throw new Error(`exit=${exit} stderr=${stderr.slice(-300)}`);
-      return {
-        input_tokens: data.usage.input_tokens,
-        output_tokens: data.usage.output_tokens,
-        text: data.result ?? "",
-        stop_reason: data.stop_reason,
-      };
-    } catch (e) {
-      if (attempt >= 3) throw e;
-      const delay = delays[Math.min(attempt, delays.length - 1)];
-      console.error(`  Call failed (${e}), retrying in ${delay / 1000}s...`);
-      await Bun.sleep(delay);
-    }
-  }
-}
-
 type Unit = { pid: string; prompt: string; mode: "normal" | "skimmable"; system: string | null; trial: number };
 type ModeResult = Unit & { result: CallResult };
 
@@ -129,18 +80,20 @@ async function runBenchmarks(prompts: Prompt[], systemPrompt: string, trials: nu
   const total = units.length;
   let done = 0;
 
-  const queue = new PQueue({ concurrency: workers });
-  const out = await queue.addAll(
-    units.map((u) => async (): Promise<ModeResult> => {
-      console.error(`  [${++done}/${total}] ${u.pid} | ${u.mode} | trial ${u.trial}/${trials}`);
-      // Scratch subdir per trial so concurrent model writes can't collide.
-      const cwd = mkdtempSync(join(tmpdir(), "trial-"));
-      try {
-        return { ...u, result: await callClaude(u.prompt, u.system, model, cwd) };
-      } finally {
-        rmSync(cwd, { recursive: true, force: true });
-      }
-    }),
+  const queue = new PromiseQueue(workers);
+  const out = await Promise.all(
+    units.map((u) =>
+      queue.add(async (): Promise<ModeResult> => {
+        console.error(`  [${++done}/${total}] ${u.pid} | ${u.mode} | trial ${u.trial}/${trials}`);
+        // Scratch subdir per trial so concurrent model writes can't collide.
+        const cwd = mkdtempSync(join(tmpdir(), "trial-"));
+        try {
+          return { ...u, result: await callClaude(u.prompt, { systemPrompt: u.system, model, cwd }) };
+        } finally {
+          rmSync(cwd, { recursive: true, force: true });
+        }
+      }),
+    ),
   );
 
   return prompts.map((p) => ({
