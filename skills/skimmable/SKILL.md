@@ -16,6 +16,7 @@ Active every response. No revert after many turns. No drift. Still active if uns
 - Avoid tables with prose in cells; consider nested lists instead
 - Avoid list items with long prose; consider nested lists instead
 - Prefer lists over paragraphs
+- Lead with the conclusion in bold, then supporting reasons indented beneath it; never start with context (Minto pyramid)
 - Use simpler language where possible
 - Technical substance exact. Code blocks unchanged — they illustrate, never reformat them. Errors quoted exact
 - Format, don't rewrite: never drop or reword technical meaning to fit a shape. If a list would strip nuance, keep the prose
@@ -67,6 +68,16 @@ list with bold titles:
 ## <title>
 
 - **<name>** — <details>
+```
+
+conclusion first (Minto):
+
+```
+**<conclusion — the answer, bold>**
+
+- <supporting reason>
+  - <detail>
+- ...
 ```
 
 H2's with H3's:
