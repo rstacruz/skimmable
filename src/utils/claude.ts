@@ -21,12 +21,19 @@ export type CallOptions = {
   systemPrompt?: string | null;
   model?: string | null;
   cwd?: string;
+  /** Blank the default system prompt & disable settings — a truly bare call. */
+  bare?: boolean;
 };
 
 export async function callClaude(prompt: string, opts: CallOptions = {}): Promise<CallResult> {
   const cmd = ["claude", "-p", "--output-format", "json"];
   if (opts.model) cmd.push("--model", opts.model);
-  if (opts.systemPrompt) cmd.push("--append-system-prompt", opts.systemPrompt);
+  if (opts.bare) {
+    // wt-spawn-style isolation: no default system prompt, no plugins/hooks.
+    cmd.push("--system-prompt", "", "--setting-sources", "", "--no-session-persistence", "--disable-slash-commands");
+  } else if (opts.systemPrompt) {
+    cmd.push("--append-system-prompt", opts.systemPrompt);
+  }
   cmd.push(prompt);
   // Disables all tools: implementation prompts ("implement X") make the
   // model attempt Write, and the tool loop stalls on non-TTY stdin. Pure-text
@@ -49,10 +56,10 @@ export async function callClaude(prompt: string, opts: CallOptions = {}): Promis
         new Response(proc.stderr).text(),
       ]);
       const exit = await proc.exited;
-      // --output-format json now returns an array of stream messages
-      // (system/assistant/result), not a flat object; usage/result live on
-      // the "result" message.
-      const data = (JSON.parse(stdout) as ClaudeResponse[]).find((m) => m.type === "result");
+      // --output-format json returns a flat result object on this CLI version,
+      // but an array of stream messages (system/assistant/result) on others.
+      const parsed: unknown = JSON.parse(stdout);
+      const data = (Array.isArray(parsed) ? parsed.find((m) => m.type === "result") : parsed) as ClaudeResponse;
       if (exit !== 0 || !data || data.is_error) throw new Error(`exit=${exit} stderr=${stderr.slice(-300)}`);
       return {
         input_tokens: data.usage.input_tokens,
