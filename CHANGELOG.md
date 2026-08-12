@@ -4,16 +4,11 @@
 
 ### ✨ Features
 
-- **Examples generator**: `examples/generate.ts` produces skimmable vs bare sample answers for every benchmark prompt (`--mode`, `--limit`, `--out-dir`).
-
-### 🔧 Improvements
-
 - **Bold conclusions**: replies now lead with a bold, single-sentence conclusion before the details (Minto style).
-- **Examples refresh**: regenerated example outputs on Deepseek v4 Flash.
 
 ### 🛠 Internal
 
-- Added `src/utils/` (claude call helper, promise queue); benchmarks and examples now run with zero external dependencies.
+- Regenerated skimmable vs bare example outputs for the docs.
 
 ## v1.0.2 - 2026-08-12
 
