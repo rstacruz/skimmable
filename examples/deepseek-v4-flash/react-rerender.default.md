@@ -1,28 +1,12 @@
-This is one of the most common React performance gotchas. There are actually **two separate mechanisms** at play, and you're likely hitting both:
+The short answer: **it's almost certainly because a new object reference is being created on every render.**
 
----
+Here's what's happening.
 
-## 1. Default behavior: parent renders → children render
+## How React decides to re-render
 
-By default, when a parent component re-renders, **every child re-renders too** — regardless of whether its props changed. This is by design: React doesn't know what might depend on the parent's state, so it re-renders everything down the tree.
+By default, when you pass props to a child, **React does not compare their contents** ("deep equality"). It only cares about **reference equality** — whether the prop is the *same object in memory* as last time.
 
-So if your parent has `useState` and updates it, the child re-renders no matter what props you pass.
-
-**Fix:** wrap the child in `React.memo()`:
-
-```jsx
-const Child = React.memo(function Child({ config }) {
-  // ...
-});
-```
-
-Now the child only re-renders when its props **shallowly differ** from last time.
-
----
-
-## 2. The object prop is a new reference every render
-
-Here's the sneaky part. Even with `React.memo`, this *still* re-renders:
+If the parent re-renders, it re-evaluates everything in its JSX. If you're passing an object inline, a brand-new object is created on every single render:
 
 ```jsx
 function Parent() {
@@ -30,71 +14,86 @@ function Parent() {
 
   return (
     <>
-      <button onClick={() => setCount(count + 1)}>+1</button>
-      <Child config={{ theme: "dark", size: "lg" }} />  // ❌ new object every render
+      <button onClick={() => setCount(c => c + 1)}>{count}</button>
+      {/* ❌ A NEW { theme: 'dark' } object is created every time Parent renders */}
+      <Child config={{ theme: 'dark' }} />
     </>
   );
 }
 ```
 
-Why? Because `{ theme: "dark", size: "lg" }` creates a **brand-new object reference** on every render. `React.memo` does a **shallow comparison** (`prevProp === nextProp`), and the new reference fails that check. So memo sees "prop changed" and re-renders anyway.
+Even though `{ theme: 'dark' }` is *semantically* identical every time, each render creates a new object with a **new memory reference**. To React, that's "different props."
 
-It's the same with arrays, functions, class instances — anything non-primitive.
+Two things are going on:
 
----
+1. If `Child` **isn't** wrapped in `React.memo`, it re-renders whenever its parent re-renders. Period. No prop comparison happens at all.
+2. If `Child` **is** wrapped in `React.memo`, memo does a *shallow* comparison — and because the reference changed, it detects a prop change and re-renders anyway.
 
-## The fixes
+## The fix
 
-### Option A: Hoist the object outside the component (best for static values)
+### 1. If the object is static, define it outside the component:
 
 ```jsx
-const CONFIG = { theme: "dark", size: "lg" };
+const DARK_CONFIG = { theme: 'dark' };
 
 function Parent() {
-  // ...
-  return <Child config={CONFIG} />; // ✅ same reference every time
+  // same reference every time — memo will now work
+  return <Child config={DARK_CONFIG} />;
 }
 ```
 
-### Option B: `useMemo` (for values derived from state/props)
+### 2. If it depends on values, memoize it with `useMemo`:
 
 ```jsx
-const config = useMemo(
-  () => ({ theme: "dark", size: isLarge ? "lg" : "sm" }),
-  [isLarge]
-);
+function Parent() {
+  const [count, setCount] = useState(0);
+  const [user, setUser] = useState(null);
 
-return <Child config={config} />;
+  const config = useMemo(
+    () => ({ theme: 'dark', owner: user?.name }),
+    [user]           // only recreated when user changes
+  );
+
+  return (
+    <>
+      <button onClick={() => setCount(c => c + 1)}>{count}</button>
+      <Child config={config} />
+    </>
+  );
+}
 ```
 
-### Option C: If it's a function, use `useCallback` instead
+Now `config` keeps the same reference across `count` updates, and `React.memo` on the child will correctly skip re-rendering.
+
+### 3. The same problem applies to functions:
 
 ```jsx
-const handleClick = useCallback(() => { ... }, [deps]);
+// ❌ new function every render
+<Child onClick={() => handleClick(id)} />
+
+// ✅ stable function
+<Child onClick={useCallback(() => handleClick(id), [id])} />
 ```
 
-### Option D: Restructure the object away
+### 4. Restructure to isolate state
 
-Pass primitives directly — nothing to compare by reference:
+Sometimes the best fix is to move the state *down* so the expensive child isn't even in the same subtree as the thing updating:
 
 ```jsx
-<Child theme="dark" size={isLarge ? "lg" : "sm"} />
+function Parent() {
+  return (
+    <>
+      <Counter />       {/* count state lives here — only Counter re-renders */}
+      <ExpensiveChild config={DARK_CONFIG} />
+    </>
+  );
+}
 ```
 
----
+## Important caveats
 
-## Quick diagnosis checklist
+- **A component's own state updates should re-render it.** That's correct React behavior — don't try to suppress that.
+- Don't reach for `useMemo`/`memo` everywhere. Memoization itself has a cost, and React's default re-rendering is usually fast. Profile first; if the child is genuinely expensive (large tree, heavy rendering), then optimize.
+- `React.memo` only does a **shallow** comparison. If you mutate an object and pass the same reference, memo will *skip* the re-render (often a bug, not a feature). Keep props immutable.
 
-| Symptom | Cause |
-|---|---|
-| No `memo`, child re-renders | Normal React behavior |
-| `memo` present, still re-renders | Object prop has a new reference each render |
-| `memo` present, primitives only | Something else (context, state in component, parent re-mount) |
-
----
-
-## When *not* to bother
-
-`memo` + `useMemo` add garbage-collection and comparison overhead themselves. For small, cheap components the re-render cost is negligible — React is fast. Optimize only when you have a genuinely heavy subtree, many components, or measurable jank. When in doubt, profile with the React DevTools profiler first.
-
-**TL;DR:** Re-renders are expected by default; use `React.memo` to opt out; but `memo` won't help if your object prop is recreated on every render — memoize the object (or hoist it) so its reference stays stable.
+So: **stabilize your object references**, combine with `React.memo` where it pays off, and React will stop re-rendering the child when the parent's unrelated state changes.

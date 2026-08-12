@@ -1,62 +1,86 @@
-### Quick answer
+## Git rebase vs merge — the short answer
 
-- **Merge** — combines two branches with a merge commit; preserves the real timeline.
-- **Rebase** — replays your commits on top of another branch; produces a linear history.
+**Merge preserves history; rebase rewrites it. Use merge for public branches, rebase to clean up your own commits before pushing.**
 
-### Visual difference
+## What each does
 
-```
-Merge (preserves both paths)
-      A---B---C  (feature)
-     /           \
-D---E---F---G-----H  (main)
-                   ↑ merge commit
-```
+- **`git merge`** — combines two branches by creating a *merge commit* that ties the histories together. Original commits stay untouched.
+- **`git rebase`** — takes your commits, *replays them one by one* on top of another branch, then moves your branch pointer. Your commits get new hashes.
+
+## Visual difference
+
+**Merge** — history shows both branches converging:
 
 ```
-Rebase (feature commits rewritten on top of main)
-                  A'---B'---C'  (feature)
-                 /
-D---E---F---G  (main)
+      A---B---C  feature
+     /         \
+D---E---F-------M  main
+                 ^ merge commit
 ```
 
-- After rebase, `feature` looks like it was always based on the latest `main`.
-- The old commits `A`, `B`, `C` are abandoned; new commits `A'`, `B'`, `C'` are created.
+**Rebase** — history becomes one straight line:
 
-### When to use each
+```
+                A'--B'--C'  feature
+               /
+D---E---F------  main
+        ^ feature was rewound, then replayed
+```
 
-**Use merge when**
+- A', B', C' are *copies* of A, B, C — same changes, different hashes.
 
-- The branch is **shared/public** — merge never rewrites history.
-- You want to preserve the real order of events for auditing/archaeology.
-- You're integrating a finished feature into main and want a clear "this feature landed here" commit.
-- Your team's convention says so.
+## When to use which
 
-**Use rebase when**
+**Use merge when...**
 
-- Cleaning up **unpushed** local commits (`git rebase -i`: squash, reorder, edit).
-- Updating your own feature branch against latest main to keep history linear.
-- Keeping a tidy, readable log for code review.
-- Pulling remote changes with `git pull --rebase` instead of creating merge commits.
+- Working on a **shared branch** (main, develop) — it never rewrites anyone else's work
+- You want history to show *when* things were integrated, not just the final shape
+- You want zero risk — a merge can always be undone cleanly
 
-### Tradeoffs
+**Use rebase when...**
 
-| Aspect | Merge | Rebase |
+- Your **feature branch** hasn't been pushed/shared yet — you want a clean, linear history
+- Pulling upstream changes into your feature branch (`git pull --rebase`) to avoid ugly merge commits
+- You care about a tidy `git log` and easy `git bisect`
+
+## Tradeoffs
+
+| | Merge | Rebase |
 |---|---|---|
-| History | Non-linear, matches real timeline | Linear, cleaner to read |
-| Safety | Safe — never rewrites history | Rewrites history — **dangerous on shared branches** |
-| Conflicts | Resolved once at the merge commit | Resolved per commit as each one replays |
-| Integration context | Visible where/when code joined | Lost — no marker |
-| Undo | Easy (`git revert` the merge) | Painful — commits are rewritten and renumbered |
-| Branch shape | Keeps intermixed commits | Topic commits stay grouped together |
+| **History** | Shows real timeline, has merge commits | Clean, linear, reads like a story |
+| **Safety** | Safe everywhere | Only safe on unshared branches |
+| **Conflict resolution** | Once, in the merge commit | Once *per commit* being replayed (can be painful) |
+| **Undoing** | Trivial — revert the merge | Hard — history was rewritten |
+| **Shared branches** | ✅ Fine | ❌ Rewrites commits others may have based on |
 
-### Rules of thumb
+## The golden rule
 
-- **Public/shared branch** → merge
-- **Private/unpushed branch** → rebase freely
-- **Bring main into your feature** → rebase (clean, no merge noise)
-- **Bring feature into main** → merge or squash-merge (`git merge --squash` gives a linear main history while preserving the feature branch as-is)
+> **Never rebase commits you've already pushed to a shared branch.** You'll rewrite history other people have pulled from, and they'll get duplicate commits or lost work on their next pull.
 
-### One caveat
+## Typical workflow
 
-Rebasing a branch others have based work on makes their history diverge — their commits will reference commits that no longer exist. If a branch has been pushed, prefer merge unless the team explicitly agrees to force-push.
+```bash
+# Feature branch: rebase to stay current with main, before pushing
+git switch feature
+git rebase main
+
+# Integration: merge to combine
+git switch main
+git merge feature
+```
+
+- One common hybrid: rebase your local feature to keep it clean, then merge (or fast-forward) into main once it's ready.
+
+## When conflicts get ugly
+
+**Merge** — resolve conflicts once; the merge commit records *both* sides of the story.
+
+**Rebase** — you resolve conflicts against each commit being replayed, in sequence:
+
+```bash
+git rebase main          # conflict
+git add fixed-file.js
+git rebase --continue    # conflict again, on the next commit...
+```
+
+- If rebase goes sideways: `git rebase --abort` returns you to where you started.

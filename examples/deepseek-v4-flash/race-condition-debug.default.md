@@ -1,64 +1,54 @@
-This is the classic **read-then-write race condition**. Your endpoint probably does something like this:
+The root cause is almost certainly a read-modify-write cycle in your application code:
 
 ```js
-app.post('/increment', async (req, res) => {
-  const { rows } = await pool.query('SELECT counter FROM counters WHERE id = 1');
-  const newValue = rows[0].counter + 1;
-  await pool.query('UPDATE counters SET counter = $1 WHERE id = 1', [newValue]);
-  res.json({ value: newValue });
-});
+// ❌ BAD: not atomic
+const { rows } = await client.query('SELECT value FROM counters WHERE id = $1', [id]);
+const next = rows[0].value + 1;
+await client.query('UPDATE counters SET value = $1 WHERE id = $2', [next, id]);
+return next;
 ```
 
-With two concurrent requests, both `SELECT`s can read the same value (say `10`) before either `UPDATE` runs. Both compute `11`, both write `11`, and both return `11`. The counter ends at `11` instead of `12`.
+When two requests run concurrently, **both** read `5`, both compute `6`, and both return `6`.
 
-## The fix: make the increment atomic
+## The fix: do the increment in a single atomic SQL statement
 
-Do the read and write in a single statement using `UPDATE ... RETURNING`:
+PostgreSQL's `UPDATE` is atomic per row — let the database do the math:
 
 ```js
-app.post('/increment', async (req, res) => {
-  const { rows } = await pool.query(
-    'UPDATE counters SET counter = counter + 1 WHERE id = 1 RETURNING counter'
-  );
-  res.json({ value: rows[0].counter });
-});
+const { rows } = await client.query(
+  'UPDATE counters SET value = value + 1 WHERE id = $1 RETURNING value',
+  [id]
+);
+return rows[0].value;
 ```
 
-**Why this works:** `counter = counter + 1` is evaluated by PostgreSQL while the row is locked by the update. Concurrent requests are serialized at the row level — the second update sees the value written by the first — so each request gets a distinct, correct value.
+The `value = value + 1` happens while the row is locked, so concurrent requests **serialize**: the first gets `6`, the second gets `7`. No read, no compute, no race.
 
-## Alternative: use a transaction with a row lock
+## If you're using an ORM
 
-If your endpoint does more than just increment (e.g., reads other fields or writes to multiple tables), wrap it in a transaction and lock the row first:
+- **Sequelize**: `Counter.increment('value', { where: { id } })` (then re-fetch if you need the new value).
+- **TypeORM**: `counter.value = () => 'value + 1'` in an update, or `QueryBuilder.increment()`.
+- **Knex**: `.increment('value', 1)`.
+- **Prisma**: `update({ data: { value: { increment: 1 } } })`.
 
-```js
-const client = await pool.connect();
-try {
-  await client.query('BEGIN');
-  const { rows } = await client.query(
-    'SELECT counter FROM counters WHERE id = 1 FOR UPDATE'
-  );
-  const newValue = rows[0].counter + 1;
-  await client.query('UPDATE counters SET counter = $1 WHERE id = 1', [newValue]);
-  await client.query('COMMIT');
-  res.json({ value: newValue });
-} catch (err) {
-  await client.query('ROLLBACK');
-  throw err;
-} finally {
-  client.release();
-}
-```
+## When would you need something heavier?
 
-`SELECT ... FOR UPDATE` blocks the second transaction until the first commits, so the second one reads the updated value.
+- **`SELECT ... FOR UPDATE`** — only necessary if the increment depends on reading *other* columns first (e.g., conditional logic based on the current value). Wrap it in a transaction:
 
-## What won't fix it (or only seems like it would)
+  ```sql
+  BEGIN;
+  SELECT value FROM counters WHERE id = $1 FOR UPDATE;
+  -- ... application logic ...
+  UPDATE counters SET value = value + 1 WHERE id = $1;
+  COMMIT;
+  ```
 
-- **`SERIALIZABLE` isolation alone** — PostgreSQL resolves serialization conflicts by aborting one transaction, but *you* have to retry it, and the initial read still needs the write to be properly ordered. It's not the right tool for a simple counter.
-- **`SELECT ... FOR SHARE`** — allows concurrent reads, doesn't serialize writers properly for this pattern.
-- **Client-side "optimistic" counters / in-memory increments** — only work if you deploy a single Node.js process, which defeats horizontal scaling.
+- **Postgres sequences** (`nextval()`) — a good fit if you only need unique monotonic numbers and don't care about gaps. They're famously fast but not tied to a row and leave holes on rollback.
 
-## A note on ordering
+- **Serializable isolation** — possible but overkill here; it forces retry logic for `40001` serialization failures.
 
-The atomic `UPDATE` guarantees **distinct** values, but not the order in which requests were received — that's inherently nondeterministic under concurrency. If you need strict FIFO ordering, that's a different problem (and usually means you need a queue, not a database counter).
+## One caveat about `RETURNING`
 
-For the common case of "give each request the next number," `UPDATE ... RETURNING` is the clean, idiomatic fix.
+If a request with the same `id` touches the counter in a transaction that *rolls back*, the sequence of returned values will have gaps. If you need gap-free, sequential numbers with no skips, you'd need a different mechanism (e.g., a lock on the row for the entire transaction) — but for the vast majority of counters (view counts, request counters, etc.), gaps are perfectly acceptable.
+
+**Bottom line:** push the increment into the database with `UPDATE ... SET value = value + 1 ... RETURNING value`. It's one round-trip, no transaction management, and it's race-free by construction.

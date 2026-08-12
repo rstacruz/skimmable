@@ -1,198 +1,209 @@
-# PostgreSQL Connection Pooling in Node.js — Best Practices
+# PostgreSQL Connection Pooling in Node.js
 
-Here’s a production-grade setup using the [`pg`](https://node-postgres.com/) library, with timeouts, error handling, retries, and graceful shutdown.
+The standard library is [`pg`](https://node-postgres.com/) (`pg.Pool`). Here's a production-grade setup covering timeouts, error handling, and graceful shutdown.
 
-## 1. The Pool Configuration
+## 1. Basic Pool with Timeouts
 
 ```js
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: Number(process.env.PGPORT) || 5432,
-  database: process.env.PGDATABASE || 'mydb',
-  user: process.env.PGUSER || 'postgres',
+  // Connection details
+  host: process.env.PGHOST,
+  port: 5432,
+  user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
 
-  // ── Pool sizing ──────────────────────────────
-  max: 10,                // max clients in the pool
-  min: 2,                 // keep at least 2 clients alive
-  idleTimeoutMillis: 30_000,   // close idle clients after 30s
-  maxUses: 7500,          // recycle a client after 7500 queries (avoids memory leaks)
+  // Pool sizing
+  max: 10,                       // max clients in pool (default: 10)
+  min: 2,                        // min clients kept alive (default: 0)
+  idleTimeoutMillis: 30_000,     // close idle client after 30s (default: 10s)
+  connectionTimeoutMillis: 5_000, // max wait for a connection before error (default: 0 = no timeout — set this!)
 
-  // ── Timeouts ────────────────────────────────
-  connectionTimeoutMillis: 5_000,    // how long to wait for a NEW client from the DB
-  query_timeout: 10_000,             // max time for a query to execute (node-pg-mem / pg >= 8.7)
-  statement_timeout: 10_000,         // server-side: kill query on Postgres after 10s
-  idle_in_transaction_session_timeout: 30_000, // abort txns stuck in idle
-  allowExitOnIdle: false,
+  // Client-level timeouts
+  query_timeout: 10_000,         // kill query on client side after 10s (default: no timeout)
+  statement_timeout: 10_000,     // server-side: abort query on DB after 10s (default: no timeout)
+  idle_in_transaction_session_timeout: 60_000, // server-side: abort tx if idle > 60s
+
+  // TCP keepalive
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 1_000,
+
+  // SSL (required on many managed DBs)
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false,
 });
 ```
 
-**What each timeout does:**
+### Timeout options explained
 
-| Option | Where enforced | Purpose |
+| Option | Where it acts | What it does |
 |---|---|---|
-| `connectionTimeoutMillis` | Client-side (pg) | Wait time to acquire a DB connection from Postgres itself (network/handshake) |
-| `query_timeout` | Client-side (pg) | Kills a query at the Node level if it runs too long |
-| `statement_timeout` | Server-side (Postgres) | Backstop — kills the query on the DB server even if the client dies |
-| `idleTimeoutMillis` | Client-side (pg) | Removes unused clients from the pool |
-| `idle_in_transaction_session_timeout` | Server-side | Prevents sessions stuck in `BEGIN; -- idle -- COMMIT` from hanging |
+| `connectionTimeoutMillis` | Client (pool) | Fails if no connection can be acquired within N ms (e.g., pool exhausted or DB down). **Always set this** — default 0 means wait forever. |
+| `query_timeout` | Client | Client aborts a query that runs > N ms. |
+| `statement_timeout` | Server | Postgres itself cancels the query after N ms — protects you from runaway queries consuming DB resources. |
+| `idle_in_transaction_session_timeout` | Server | Postgres aborts a transaction left idle too long, freeing locks. |
+| `idleTimeoutMillis` | Pool | Removes an unused client from the pool after N ms to free connections. |
+| `keepAlive` / `keepAliveInitialDelayMillis` | TCP | Detects dead connections (e.g., after a network drop) sooner. |
 
-## 2. Pool-Level Error Handling
+## 2. Error Handling
 
-The pool emits an `error` event for issues with idle clients (network drops, server restarts, etc.). Without a handler, this **crashes the process**.
+### a) Pool-level errors
+
+Idle clients can emit errors (e.g., the database restarts). If unhandled, **they will crash your process**:
 
 ```js
 pool.on('error', (err, client) => {
-  console.error('[pg-pool] Unexpected error on idle client:', err);
-  // Optional: notify monitoring (Sentry, DataDog, etc.)
-  // Do NOT attempt to reconnect here — pg already handles reconnection
-  // when a new client is requested.
+  console.error('Unexpected error on idle client:', err);
+  // Optionally notify monitoring (Sentry, Datadog, etc.)
 });
 ```
 
-## 3. Query Helper with Retry & Timeout
-
-A wrapper function gives you consistent error handling and logging:
+### b) Per-query error handling
 
 ```js
-const { Pool } = require('pg');
-
-async function query(pool, text, params = {}) {
+async function query(text, params) {
   const start = Date.now();
-  const result = await pool.query(text, params);
-  // Attach query logging — helpful for finding slow queries
-  console.debug(`[pg] ${text.slice(0, 60)}… ${Date.now() - start}ms`);
-  return result;
-}
-```
-
-**Note:** `pool.query()` automatically checks out a client, runs the query, and releases it — the safest path. Only use `pool.connect()` manually if you need a transaction (and then **always** release in a `finally`).
-
-## 4. Transactions with Guaranteed Cleanup
-
-```js
-async function withTransaction(pool, fn) {
-  const client = await pool.connect();      // may throw 'timeout exceeded when trying to connect'
   try {
-    await client.query('BEGIN');
-    const result = await fn(client);
-    await client.query('COMMIT');
+    const result = await pool.query(text, params);
     return result;
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});  // don't mask the original error
+    // Categorize the error
+    switch (err.code) {
+      case '23505': // unique_violation
+        console.warn('Duplicate entry', err.detail);
+        throw new DuplicateError(err);
+      case '53300': // too_many_connections
+      case '57P01': // admin_shutdown (DB restarting)
+        // transient — worth retrying with backoff
+        return retry(text, params);
+      case '57014': // query_canceled (statement_timeout fired)
+        console.error('Query timeout:', text);
+        break;
+      default:
+        console.error('DB error:', err.message, { text, params });
+        throw err;
+    }
     throw err;
-  } finally {
-    client.release();  // CRITICAL — return client to the pool even on error
   }
 }
 ```
 
-## 5. Retry Logic (for transient failures)
+> Note: Postgres error codes are documented in the [PostgreSQL appendix](https://www.postgresql.org/docs/current/errcodes-appendix.html). Common ones: `23505` (unique violation), `23503` (foreign key violation), `40001` (serialization failure — retry), `57014` (query canceled).
 
-Postgres errors can be transient (connection reset, server restart, too many connections). Retry *a bounded number of times* with exponential backoff:
+### c) Always release the client (transactions)
+
+`pool.query()` handles acquisition/release automatically, but if you use `pool.connect()` for transactions, you **must** release in `finally`:
 
 ```js
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function doTransaction() {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE accounts SET balance = balance - 100 WHERE id = $1', [1]);
+    await client.query('UPDATE accounts SET balance = balance + 100 WHERE id = $2', [2]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {}); // ROLLBACK itself can fail
+    throw err;
+  } finally {
+    client.release(); // ALWAYS release — else pool leaks and eventually exhausts
+  }
+}
+```
 
-async function queryWithRetry(pool, text, params = {}, { maxRetries = 3 } = {}) {
-  for (let attempt = 0; ; attempt++) {
+If `client.release()` is called after a failed transaction, the pool automatically destroys that client (Postgres requires a clean session state), so you don't need to handle that manually.
+
+### d) Request-time cancellation with AbortSignal
+
+`pg` supports `AbortSignal` — useful to pair with HTTP request timeouts (e.g., an Express middleware timeout):
+
+```js
+app.get('/search', async (req, res) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000); // HTTP-level timeout
+
+  try {
+    const result = await pool.query({ text: 'SELECT ...', signal: controller.signal });
+    res.json(result.rows);
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'timed out' });
+    }
+    res.status(500).json({ error: 'internal error' });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+```
+
+## 3. Retry with Backoff (transient errors)
+
+```js
+async function withRetry(fn, { retries = 3, baseDelay = 100 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await pool.query(text, params);
+      return await fn();
     } catch (err) {
-      const isTransient =
-        err.code === '57P01' ||          // admin_shutdown
-        err.code === '57P02' ||          // crash_shutdown
-        err.code === '57P03' ||          // cannot_connect_now
-        err.code === '08P01' ||          // protocol_violation
-        err.code === 'ECONNRESET' ||     // network reset
-        err.code === 'ETIMEDOUT' ||      // socket timeout
-        /connection.*(closed|terminated|reset)/i.test(err.message);
+      lastErr = err;
+      const isTransient = [
+        'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT',   // network
+        '57P01', '57P02', '53300',                   // admin_shutdown, crash_shutdown, too_many_connections
+        '40001',                                     // serialization_failure
+      ].includes(err.code) || err.code === '57P01';
 
-      if (!isTransient || attempt >= maxRetries) throw err;
-
-      const backoffMs = Math.min(100 * 2 ** attempt + Math.random() * 50, 2000);
-      console.warn(`[pg] transient error (${err.code}), retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})`);
-      await sleep(backoffMs);
+      if (!isTransient || attempt === retries) throw err;
+      await delay(baseDelay * 2 ** attempt); // exponential backoff
     }
   }
 }
 ```
 
-## 6. Graceful Shutdown
-
-When your app receives a termination signal, drain the pool properly:
+## 4. Graceful Shutdown
 
 ```js
 async function shutdown(signal) {
-  console.log(`[pg] ${signal} received — draining pool`);
-  try {
-    await pool.end();   // waits for in-flight queries, then closes all clients
-    console.log('[pg] pool drained');
-    process.exit(0);
-  } catch (err) {
-    console.error('[pg] error during shutdown:', err);
-    process.exit(1);
-  }
+  console.log(`${signal} received, closing pool...`);
+  // query_timeout / connectionTimeoutMillis set to small values so this doesn't hang
+  await pool.end();
+  process.exit(0);
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 ```
 
-In Kubernetes/Docker environments, add a timeout so the container doesn't hang:
+## 5. Alternative: postgres.js
+
+If you don't need SQL-string compatibility with `pg`, consider [`postgres` (postgres.js)](https://github.com/porsager/postgres) — it's faster (~2x), supports tagged-template queries, and has built-in timeout/retry handling:
 
 ```js
-const SHUTDOWN_TIMEOUT = 10_000;
-const timer = setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT);
-timer.unref();  // don't keep the process alive just for this timer
-```
+import postgres from 'postgres';
 
-## 7. Monitoring
-
-Add a check endpoint for health checks:
-
-```js
-async function checkPoolHealth(pool) {
-  const { totalCount, idleCount, waitingCount } = pool;  // pg exposes these
-  return {
-    total: totalCount,
-    idle: idleCount,
-    waiting: waitingCount,
-    ok: idleCount > 0 || waitingCount === 0,
-  };
-}
-```
-
-## 8. Common Pitfalls to Avoid
-
-1. **Not handling the pool `error` event** → unhandled `'error'` events crash Node.
-2. **Forgetting `client.release()`** in transactions → pool exhaustion, app hangs.
-3. **Setting `max` too high** → Postgres can only handle ~100–200 connections per instance; each one costs ~10 MB of RAM. Start with `max: 10` per instance and scale horizontally.
-4. **Relying only on client-side `query_timeout`** — if the Node process dies, the query keeps running on the server. Always set `statement_timeout` server-side as a backstop.
-5. **Not setting `connectionTimeoutMillis`** → default is 0 = wait forever, making failures appear as hangs.
-6. **Using `pool.connect()` for single queries** — it's slower and leaks if you forget to release. Use `pool.query()` directly.
-
----
-
-### Minimal but solid starting point
-
-```js
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+const sql = postgres({
+  host, port, database, username, password,
   max: 10,
-  connectionTimeoutMillis: 5000,
-  query_timeout: 10_000,
-  statement_timeout: 10_000,
-  idleTimeoutMillis: 30_000,
+  idle_timeout: 30,      // seconds
+  connect_timeout: 5,    // seconds
+  statement_timeout: 10, // seconds
+  onnotice: () => {},
+  onerror: (err) => console.error('DB error', err),
 });
 
-pool.on('error', (err) => console.error('[pg-pool]', err));
+// Queries automatically retry (default 2 attempts)
+// Timeouts throw PostgresError subclassed errors
 
-module.exports = { pool, query, withTransaction };
+await sql`SELECT * FROM users WHERE id = ${id}`;
+await sql.end({ timeout: 5 }); // graceful shutdown
 ```
 
-If you're using TypeScript, [`postgres`](https://github.com/porsager/postgres) is a popular modern alternative with built-in type inference and similar timeout options. But for plain Node.js, `pg` with the above configuration is battle-tested and sufficient for most applications.
+## Key takeaways
+
+1. **Always set `connectionTimeoutMillis`** — the default of 0 means your app hangs forever when the pool is exhausted.
+2. **Set `statement_timeout` server-side** to protect the database, and `query_timeout` client-side to protect the app.
+3. **Always attach `pool.on('error')`** — unhandled errors from idle clients crash the process.
+4. **Release clients in `finally`** when using `pool.connect()`.
+5. **Pair pool timeouts with request-level cancellation** (`AbortSignal`) so users get a 504 rather than a hung request.

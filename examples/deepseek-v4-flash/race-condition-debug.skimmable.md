@@ -1,64 +1,60 @@
-### Root cause
+**The fix: replace the read-then-write with a single atomic `UPDATE`, and use `RETURNING` to get the new value.**
 
-You almost certainly have a **read-modify-write race** in your handler:
+Your current code probably looks like this — two concurrent requests can both read `5`, both compute `6`, and one increment is lost:
 
 ```js
-// ❌ racy: two concurrent requests can both read 5, both write 6
-const { rows } = await pool.query('SELECT count FROM counters WHERE id = $1', [id]);
-const next = rows[0].count + 1;
-await pool.query('UPDATE counters SET count = $1 WHERE id = $2', [next, id]);
-return next;
+// ❌ Both requests can run the SELECT before either runs the UPDATE
+const { count } = await db.query('SELECT count FROM counters WHERE id = $1', [id])
+await db.query('UPDATE counters SET count = $1 WHERE id = $2', [count + 1, id])
+return count + 1
 ```
 
-Both requests read `5` → both return `6` → one increment is lost.
+Default `READ COMMITTED` isolation does **not** protect you here: both SELECTs commit before either UPDATE runs, so both see the old value.
 
-### Fix 1: single atomic statement (recommended)
+## The fix — atomic UPDATE with RETURNING
 
-Do the increment inside PostgreSQL as one statement — the database serializes it for you:
+```sql
+UPDATE counters SET count = count + 1 WHERE id = $1 RETURNING count;
+```
+
+In node-postgres:
 
 ```js
-// ✅ atomic: no way for two requests to read the same value
-const { rows } = await pool.query(
+const { rows } = await db.query(
   'UPDATE counters SET count = count + 1 WHERE id = $1 RETURNING count',
   [id]
-);
-return rows[0].count;
+)
+return rows[0].count
 ```
 
-This is the simplest fix and the one you should use for a plain counter.
+- A single `UPDATE` is atomic — PostgreSQL serializes concurrent ones via row locks
+- `RETURNING count` gives you the **new** value, so no separate SELECT is needed
+- This also fixes the counter being off-by-N under load, not just the duplicate return values
 
-### Fix 2: row lock (only if you need extra steps between read and write)
+## If you must read the value before deciding what to write
 
-If you must read the value and do more logic (validation, side effects) before updating, lock the row inside a transaction:
+Use `SELECT ... FOR UPDATE` inside a transaction — it locks the row until commit, so the concurrent request blocks, then reads the fresh value:
 
-```js
-const client = await pool.connect();
-try {
-  await client.query('BEGIN');
-  const { rows } = await client.query(
-    'SELECT count FROM counters WHERE id = $1 FOR UPDATE',
-    [id]
-  );
-  const next = rows[0].count + 1;
-  // ... other logic here ...
-  await client.query('UPDATE counters SET count = $1 WHERE id = $2', [next, id]);
-  await client.query('COMMIT');
-  return next;
-} catch (err) {
-  await client.query('ROLLBACK');
-  throw err;
-} finally {
-  client.release(); // always return the client to the pool
-}
+```sql
+BEGIN;
+SELECT count FROM counters WHERE id = $1 FOR UPDATE;
+-- ...calculate new value in app code...
+UPDATE counters SET count = $2 WHERE id = $1;
+COMMIT;
 ```
 
-### Options compared
+- A plain transaction **without** `FOR UPDATE` does not fix this — both reads still happen before either write
 
-- **Atomic UPDATE ... RETURNING** — best for pure counters; simple, no transaction needed
-- **`SELECT ... FOR UPDATE`** — needed only when you do extra logic between read and write
-- **Optimistic lock (`WHERE count = $old`)** — works but you must detect 0 rows affected and retry; more code, only useful for cross-service cases
-- **`nextval()` on a sequence** — gives unique values but with gaps, and doesn't preserve the "current value" semantics; not a fix for "increment the counter"
+## ORM equivalents
 
-### Verification
+| ORM | Increment API |
+|---|---|
+| Prisma | `prisma.counter.update({ where: { id }, data: { count: { increment: 1 } } })` |
+| Sequelize | `Counter.increment('count', { where: { id } })` |
+| Knex | `knex('counters').where({ id }).increment('count', 1).returning('count')` |
 
-Fire two concurrent requests at the endpoint — you should now get two distinct, consecutive values every time.
+## Summary
+
+- **Pure increment** → atomic `UPDATE ... RETURNING` (simplest, recommended)
+- **Need old value to decide the write** → `SELECT ... FOR UPDATE` in a transaction
+- **Transactions alone won't save you** — only row locks or a single atomic statement will

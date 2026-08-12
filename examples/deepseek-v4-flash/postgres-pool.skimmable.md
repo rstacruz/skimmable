@@ -1,128 +1,94 @@
-### PostgreSQL Pool Setup (Node.js)
+### Short answer
 
-Use [`pg`](https://node-postgres.com) with a `Pool`. Timeouts and error handling are the two tricky parts — here's the full picture.
+**Use `pg`'s `Pool` with explicit timeouts (`connectionTimeoutMillis`, `query_timeout`, `statement_timeout`), a mandatory `pool.on('error')` listener for idle clients, and retry-with-backoff for transient Postgres error codes.**
 
-### Minimal setup
+## Pool setup
 
-```ts
-import { Pool } from 'pg';
+```js
+const { Pool } = require('pg')
 
 const pool = new Pool({
   host: process.env.PGHOST,
-  port: Number(process.env.PGPORT ?? 5432),
+  port: Number(process.env.PGPORT) || 5432,
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
 
-  // Connection management
-  max: 10,                        // max clients in pool
-  min: 0,                         // idle clients to keep open
-  idleTimeoutMillis: 30_000,      // close idle client after 30s
-  connectionTimeoutMillis: 5_000, // fail if can't get a client in 5s
-  allowExitOnIdle: true,          // let process exit when pool is idle
-  maxUses: 7500,                  // recycle clients to avoid memory leaks
-});
+  max: 10,                    // max simultaneous clients
+  connectionTimeoutMillis: 5000,  // fail fast if DB is unreachable
+  idleTimeoutMillis: 30000,       // close idle clients after 30s
+  query_timeout: 10000,           // cancel query after 10s (client-side)
+  statement_timeout: 15000,       // server-side statement limit (ms)
+})
 
-// Fatal errors (network down, auth failure, etc.) — always attach this
+// REQUIRED: idle clients can error (DB restart, network drop) — listen always
 pool.on('error', (err) => {
-  console.error('Unexpected PG pool error:', err);
-});
+  console.error('idle client error:', err)
+})
 ```
 
-### Timeout options
+## Timeout options
 
-| Option | Default | What it does |
-|---|---|---|
-| `connectionTimeoutMillis` | 0 (wait forever) | Time to wait to **acquire** a client from the pool |
-| `idleTimeoutMillis` | 10000 | Client idle before returned to pool is closed |
-| `maxUses` | Infinity | Connections closed after N queries (guards against stale/broken connections) |
-| `statement_timeout` | — | **Server-side**: cancels a query after N ms (`SET statement_timeout`) |
-| `query_timeout` | — | **Client-side**: kills the query's promise after N ms |
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `connectionTimeoutMillis` | `0` (forever) | Wait for a connection from the pool before rejecting |
+| `idleTimeoutMillis` | `10000` | Client can sit idle before being closed |
+| `query_timeout` | none | Client-side cancel of a slow query (ms) |
+| `statement_timeout` | none | Server-side `SET statement_timeout` (ms) |
+| `max` | `10` | Pool size — 10 is a sane start; tune under load |
 
-Key difference: `connectionTimeoutMillis` protects you from pool exhaustion — no client becomes available within the window, you get `timeout exceeded when trying to connect`. It does **not** time out the query itself.
+## Error handling
 
-For query timeout, either set it server-side in the pool config:
+**Postgres error codes** — branch on `err.code`, not `err.message`:
 
-```ts
-options: {
-  statement_timeout: 10_000, // psql-level: aborts slow queries on the server
-}
-```
+- `ECONNREFUSED`, `08006` — connection failed (transient, retry)
+- `57P01` — server shutting down (transient, retry)
+- `57P03` — "cannot connect now" (transient, retry)
+- `40001`, `40P01` — serialization failure / deadlock (transient, retry)
+- `57014` — query canceled (your `query_timeout` hit — don't retry blindly)
+- `23505` — unique violation (config error, don't retry)
+- `28P01` — auth failure (config error, don't retry)
 
-...or wrap individual queries:
+**Retry with exponential backoff:**
 
-```ts
-const result = await Promise.race([
-  pool.query('SELECT ...'),
-  timeout(5_000),              // your own rejection helper
-]);
-```
+```js
+const RETRIABLE = ['ECONNREFUSED', '08006', '57P01', '57P03', '40001', '40P01']
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-### Error handling patterns
-
-**Never leak clients** — a leaked client starves the pool until max is hit:
-
-```ts
-// Correct: always release
-const client = await pool.connect();
-try {
-  await client.query('...');
-} finally {
-  client.release();
-}
-```
-
-**Releasing broken connections**:
-
-```ts
-try {
-  await client.query('...');
-} catch (err) {
-  await client.release(err); // release with error → connection is destroyed, not reused
-}
-```
-
-**Classify errors** to decide retry vs fail (property is on the error, set by `pg`):
-
-```ts
-// err.code — PostgreSQL error codes ('ECONNREFUSED', '57P01', etc.)
-if (isTransient(err)) {
-  await sleep(backoff);
-  retry();
-}
-```
-
-Common transient codes worth retrying: `57P01` (admin shutdown), `57P03` (cannot connect now), `08006` (connection failure), `53300` (too many connections).
-
-### Health check / heartbeat
-
-```ts
-async function checkPool(): Promise<boolean> {
-  try {
-    await pool.query('SELECT 1');
-    return true;
-  } catch {
-    return false;
+async function queryWithRetry(text, params, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await pool.query(text, params)
+    } catch (err) {
+      if (!RETRIABLE.includes(err.code) || attempt === retries) throw err
+      await sleep(100 * 2 ** (attempt - 1)) // 100ms, 200ms, 400ms
+    }
   }
 }
 ```
 
-### Graceful shutdown
+## Transactions — release discipline
 
-```ts
-async function shutdown() {
-  await pool.end(); // closes all idle clients, waits for in-flight queries
-  process.exit(0);
+**With transactions you must use `pool.connect()` and release in `finally`** — a leaked client permanently shrinks the pool:
+
+```js
+const client = await pool.connect()
+try {
+  await client.query('BEGIN')
+  await client.query('INSERT INTO users (name) VALUES ($1)', ['ada'])
+  await client.query('COMMIT')
+} catch (err) {
+  await client.query('ROLLBACK')
+  throw err
+} finally {
+  client.release()
 }
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
 ```
 
-### Gotchas
+## Pitfalls
 
-- **Never put a query outside a try/finally with `pool.connect()`** — the pool will silently exhaust.
-- **`pool.query()`** is the shortcut: acquires, runs, and releases internally — prefer it over `pool.connect()` unless you need a transaction.
-- **Transactions** require a single client — use `pool.connect()` + `BEGIN`/`COMMIT`/`ROLLBACK` in a `finally`.
-- **Env-based config**: don't hardcode credentials; `pg` reads `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` automatically if you pass no connection fields.
-- If you need a lightweight alternative with auto-retry and circuit breaking, look at [`pg-pool`](https://github.com/brianc/node-postgres/tree/master/packages/pg-pool) (it's the same underlying pool) or `postgres` (porsager) which has built-in timeouts.
+- **`connectionTimeoutMillis: 0` is the default** — a dead DB will hang your requests forever. Set it.
+- **The pool does not retry failed queries** — you must implement retry yourself (above).
+- **Create the pool once at module load**, never inside a request handler.
+- **Graceful shutdown** — call `await pool.end()` on `SIGTERM` so in-flight queries finish.
+- **For one-off scripts/migrations**, use a single `Client` instead of a pool — no pooling need, no pool `error` listener.

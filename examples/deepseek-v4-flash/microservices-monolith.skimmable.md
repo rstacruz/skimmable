@@ -1,84 +1,74 @@
-### Framing
+**Don't split to make it faster — microservices fix autonomy and independent scaling, not slowness. In a Django app, "slow" is almost always a query, index, or blocking-I/O problem, and splitting first adds network latency, distributed-data complexity, and ops burden.**
 
-Slow monoliths rarely need to become microservices. Most production slowness is fixable inside the monolith, and splitting adds latency rather than removing it. Diagnose before you decide.
+## The core question first
 
-## Step 0 — Find the real bottleneck first
+**Before any architecture debate, answer: what is actually slow?**
 
-- **Profile the actual slow path** — measure request traces, slow queries, and N+1s before anything else
-  - `django-debug-toolbar`, `django-silk`, or APM traces
-  - Most "monolith is slow" == a handful of bad queries or missing cache
-- **Check the obvious suspects**
-  - Missing indexes, N+1 queries, serializing huge querysets, blocking calls in the request path (email, SMS, external HTTP)
-  - `select_related` / `prefetch_related` gaps
-  - Gunicorn/async worker counts and settings
-- **Check whether it's operations, not code**
-  - Unproxied static files, misconfigured DB pool, no read replicas, sync settings hitting the DB per request
+- **N+1 ORM queries** — missing `select_related` / `prefetch_related`
+- **Missing indexes** on hot FK/query columns
+- **Sync views blocking** on slow third-party API calls or I/O
+- **Uncached hot reads** — sessions, config, expensive computed values
+- **Heavy template rendering** — no cached loader, overly large partials
+- **Long transactions** — writes held inside big `transaction.atomic` blocks
 
-## The hard truth about microservices and performance
+Profile with an APM or `django-silk` / `py-spy` before touching the architecture. Most "the monolith got slow" complaints resolve to one of these — none of which require a split.
 
-- **Microservices don't make things faster — they scale independently**
-  - You gain: scale only the hot service, isolate heavy compute, one team's deploy doesn't stall another
-  - You lose: one network hop + serialization per call, distributed tracing, no cross-service `transaction.atomic()`
-- **Same-level performance problems follow you**
-  - A slow query stays slow. Now it's just behind an HTTP boundary
-- **Latency arithmetic**
-  - Monolith: one process, one DB pool, no hops
-  - Services: request → service A → service B → DB → back — each hop adds 1–5ms plus serialization, retries, and timeout math
+## Why microservices rarely fix slowness
 
-## Factors to weigh before splitting
+- **Local calls become network calls** — adds latency, plus retries and timeouts
+- **New failure modes** — cascading timeouts, partial failures, degraded responses
+- **One query becomes N** — joins turn into cross-service aggregation
+- **Distributed-systems tax** — sagas, eventual consistency, idempotency, tracing
 
-- **Team size and shape** — Conway's law in practice
-  - Each service needs an owning team. Fewer than ~10–12 engineers usually can't absorb the operational burden
-  - If 3 people own the whole system, a monolith serves them better
-- **Data coupling** — the real work is the database, not the code
-  - Shared DB is the biggest tie. Split means every service owns its data, and `JOIN`s become API calls or duplicated data
-  - Cross-service transactions require sagas + eventual consistency — do your finance/reporting paths tolerate that?
+## When splitting is actually justified
+
+- **Independent deploy cadence** — one team ships many times a day without coordinating
+- **Independent scaling** — one component needs dramatically more resources than the rest
+- **Team autonomy (Conway's law)** — service boundaries should match team boundaries
+- **Isolation requirements** — security or compliance separation for one component
+- **Runtime constraints** — something Django can't do well
+
+**If none of these apply, the answer is a modular monolith + performance levers, not microservices.**
+
+## Cheaper levers inside the monolith first
+
+- **Cache hot reads** — Redis for sessions, config, expensive queries
+- **Background jobs** — Celery / Dramatiq for anything not needed synchronously
+- **Fix the queries** — indexes, `select_related`, keyset pagination
+- **Offload blocking work** — async views (ASGI), or external services for email/PDFs
+- **Scale horizontally** — more app instances; Django is stateless once sessions move to Redis
+- **Read replicas** — for reporting-heavy paths
+
+## If you still split: the key factors
+
+- **Data ownership — the hardest part**
+  - Which service owns which table?
+  - Foreign keys across services break — replace with events or API calls
+  - Reporting joins become data-warehouse or "view" queries
 - **Operational maturity**
-  - Distributed systems need: centralized logging, tracing, APM, CI/CD, staged deploys, on-call runbooks
-  - If you debug `print()` today, multiplying services multiplies debugging effort
-- **Deployment and release cadence**
-  - Splitting only pays off if teams are genuinely blocked by each other's release schedule
-  - One deploy pipeline, one cadence → less reason to split
-- **Scale requirements**
-  - Does one component need 50x the compute of the rest, or a totally different runtime (async workers, ML, WebSockets)? That's the strongest case for extraction
-  - Uniform load scales fine with replicas of the monolith
-- **Security and compliance**
-  - Separate services = separate attack surfaces, service-to-service auth, more secrets, more blast-radius questions
-  - Sometimes useful (PCI boundary), often just overhead
-- **Cost**
-  - More infrastructure, more pipelines, more meetings at API boundaries, more failure modes (partial failures, retries, timeouts)
+  - Per-service CI/CD, secrets, logging, metrics, on-call
+  - Distributed tracing (OpenTelemetry) before you need it, not after
+- **Team size**
+  - Under ~10 devs, ops overhead usually outweighs autonomy gains
+  - Unclear bounded contexts → you get a distributed monolith
+- **Cost** — N services = N× infra, N× pipelines, N× monitoring surfaces
 
-## Cheaper alternatives to try first
+## Quick comparison
 
-- **Modular monolith** — most of the payoff, none of the ops burden
-  - Structure the Django project into strict, decoupled Django apps with a shared kernel and explicit interfaces
-  - Enforce "no imports across app boundaries" with linting/CI
-  - This preserves `transaction.atomic()`, shared tests, one deploy
-- **Move work off the request path**
-  - Celery/RQ for emails, reports, exports, webhooks
-- **Scale horizontally and vertically first**
-  - Multiple workers, read replicas, Redis caching, CDN — a fraction of the cost of a split
-- **Measure the ceiling** — a well-tuned monolith with one DB handles a very large load before you genuinely need more
+| Axis | Monolith | Microservices |
+|---|---|---|
+| Dev speed (small team) | High | Low |
+| Independent deploy | No | Yes |
+| Independent scale | No | Yes |
+| Data consistency | ACID, easy | Eventual, hard |
+| Ops cost | Low | High |
+| Debugging | One stack | Distributed traces |
 
-## If you do split — do it with a strangler
+## Recommended sequence
 
-- **Extract one bounded context at a time**, only where a seam exists and ownership justifies it
-  - Good first candidates: background jobs, reports/exports, auth, or a domain with zero shared tables
-  - Bad first candidates: anything that `JOIN`s heavily against core user/order data
-- **Decouple the service, then the data**
-  - Service reads the shared DB first; move ownership of tables only after the API boundary is stable
-- **Keep the monolith as the host** — grow services out of it, don't rewrite in one go
+1. **Profile and fix the bottleneck** in the monolith
+2. **Enforce module boundaries** — Django apps with private interfaces (modular monolith)
+3. **Extract one service only** when a bounded context is clear and a trigger above applies
+4. **Strangler fig pattern** — extract incrementally, monolith stays the fallback
 
-## Decision rule
-
-| Situation | Likely answer |
-| --- | --- |
-| Slow queries / N+1s, one small team | Fix queries, add cache and replicas |
-| One team blocked by another's deploys daily | Consider modular monolith first, extract at the seam |
-| A component needs 10–50x scale or a different runtime | Extract that one service |
-| Payments/PCI isolation required | Extract that boundary |
-| No tracing/CI maturity yet | Fix that first, don't split |
-
-### Bottom line
-
-Split for **team boundaries, independent scaling, or isolation** — never for raw speed. Profile first; you'll usually find the slowness is a handful of queries that a service boundary won't fix and will often make worse.
+A good heuristic: if the team can't name a bounded context, they can't name a service.

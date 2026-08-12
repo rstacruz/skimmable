@@ -1,64 +1,84 @@
-This multi-stage approach keeps the build toolchain (TypeScript, dev dependencies) out of the final image. The runtime stage only gets compiled JavaScript plus production dependencies, and runs as a non-root user on a slim Alpine base.
+Here's a multi-stage Dockerfile that keeps the final image lean: it uses a full Node image only for compiling, then builds a fresh production-only `node_modules` in a separate stage, and copies just the output + runtime deps into the final image.
 
 ```dockerfile
 # syntax=docker/dockerfile:1
 
-# ---------- Stage 1: build ----------
-# Full node environment: installs everything, compiles TypeScript.
-ARG NODE_VERSION=24
-
-FROM node:${NODE_VERSION}-alpine AS build
+############################
+# Stage 1: Build
+# Full toolchain: dev deps + TypeScript compiler
+############################
+FROM node:24-alpine AS build
 WORKDIR /app
 
-# Install deps first so Docker caches this layer until package files change.
+# Copy dependency manifests first so docker layer caching
+# reuses this step unless package-lock.json changes
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Compile TypeScript -> JavaScript in /app/dist
+# Copy config and source, then compile TypeScript
 COPY tsconfig.json ./
 COPY src ./src
+
 RUN npm run build
 
-# ---------- Stage 2: runtime ----------
-# Fresh, minimal base. No TypeScript, no dev dependencies, no build tools.
-FROM node:${NODE_VERSION}-alpine AS runtime
+############################
+# Stage 2: Production deps
+# Fresh install of ONLY runtime dependencies
+############################
+FROM node:24-alpine AS production-deps
 WORKDIR /app
-ENV NODE_ENV=production
 
-# Install only production dependencies into this stage's own node_modules,
-# then drop npm's cache so it isn't stored in the image layer.
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev
 
-# Copy only the compiled output from the build stage.
-COPY --from=build /app/dist ./dist
+############################
+# Stage 3: Runtime
+# Minimal image: just node runtime + compiled JS + prod deps
+############################
+FROM node:24-alpine AS runtime
 
-# Run as non-root user (built into the node image).
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Run as non-root user (built into the official node image)
 USER node
 
+# Copy production dependencies and compiled output
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+
+# Optional: only copy package.json if your app reads it at runtime
+# COPY --from=build --chown=node:node /app/package.json ./
+
+# Optional: non-JS assets from the build, e.g. views/ or public/
+# COPY --from=build --chown=node:node /app/public ./public
+
 EXPOSE 3000
-# Adjust to match your tsconfig output / entry file.
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]
 ```
 
-Add a `.dockerignore` so local `node_modules`, build output, and secrets aren't sent as build context:
+You'll also want a `.dockerignore` so dev files don't get sent to the build context and invalidate caches:
 
 ```
 node_modules
 dist
+coverage
 .git
-.env*
-npm-debug.log*
-Dockerfile*
+.gitignore
+Dockerfile
 .dockerignore
+.env
+.env.*
+*.log
 ```
 
-Notes:
+## Why this minimizes image size
 
-- **`npm ci` requires a committed `package-lock.json`** — deterministic and faster than `npm install`.
-- **Cache invalidation:** package files are copied before source code, so rebuilding after a code change skips the `npm ci` layers in both stages.
-- **Native modules:** Alpine uses musl; most popular packages (e.g. `sharp`, `better-sqlite3`) ship musl prebuilds. If a dependency doesn't, switch both stages to `node:24-slim` (Debian/glibc) so `npm ci` can compile it in the runtime stage.
-- **Trimming further:** if you don't need stack-trace source maps in production, set `"sourceMap": false` (and `"declaration": false`) in your build `tsconfig.json` — it reduces the `dist` output size.
-- **Edge case:** if `package.json` has a `"prepare": "npm run build"` script, `npm ci` in the build stage will fail because `src/` isn't copied yet. Remove the `prepare` script for this project (or use `npm ci --ignore-scripts` if no dependency needs postinstall hooks).
-- **Go smaller still:** for maximum reduction you can switch the final stage to `gcr.io/distroless/nodejs24-debian12` (no shell, no package manager), but install production deps in a node slim stage first so native modules stay glibc-compatible — you lose shell access for debugging.
-- **Verify:** compare image sizes with `docker images`, and your app's actual entry point may be `dist/server.js` or similar — adjust the `CMD` accordingly.
+- **Dev dependencies never reach the final image.** The TypeScript compiler, `@types/*`, and other dev-only packages only exist in the `build` stage. Only the compiled JS and `--omit=dev` dependencies are copied into `runtime`.
+- **A fresh `npm ci --omit=dev` in a separate stage** guarantees a clean production `node_modules` (vs. `npm prune` on the full one, which can occasionally leave stray files).
+- **Intermediate stages are free.** Whatever you install in the `build` stage adds zero bytes to the final image, so there's no need to run `npm cache clean` — only what you `COPY --from=` carries over.
+- **Layer caching by design.** `package.json` + `package-lock.json` are copied before source code, so dependency installs are only re-run when the lockfile changes — source edits won't re-trigger `npm ci`.
+- **`node:alpine` base** is ~30–50 MB compressed. If you rely on native modules (bcrypt, sharp, etc.), note that Alpine uses `musl` libc — in that case prefer `node:24-slim` (Debian-based) to avoid compilation surprises; it's slightly larger but glibc-compatible.
+- **`USER node`** isn't about size, but it's good practice — don't run the app as root. The `--chown=node:node` keeps the app able to write to its working directory if needed.
+
+Assumptions baked in: `package-lock.json` is committed, and `npm run build` runs `tsc` with `outDir: "dist"`. Adjust the final `CMD` if your entrypoint lives elsewhere in `dist`.

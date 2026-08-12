@@ -1,53 +1,40 @@
-## Issues found
-
-### Critical — SQL injection
-
-`req.params.id` is concatenated directly into the SQL string, so any value an attacker sends becomes part of the query. Parameterized queries prevent this.
-
-```sql
--- request to /api/users/1%20OR%201=1
-SELECT * FROM users WHERE id = 1 OR 1=1
-```
-
-- **Exploit** — `/api/users/1 OR 1=1` — returns every user row
-- **Exploit** — `/api/users/1; DROP TABLE users;--` — destructive if the driver allows stacked queries
-
-### Medium — no error handling
-
-`db.query(...).then(...)` has no `.catch()`. If the query rejects, you get an unhandled rejection — which can crash the process or leak stack traces to logs.
-
-### Low — returns the full row
-
-`res.json(user)` exposes every column, including things like `password_hash`, `token`, etc. Select only the fields the client needs.
-
-### Low — no validation or 404
-
-- Non-numeric values (e.g. `/api/users/abc`) are passed through
-- A missing user returns `undefined` instead of a 404
-
-## Fixed version
+**Verdict: critical SQL injection — never interpolate request data into a SQL string.**
 
 ```js
-app.get('/api/users/:id', async (req, res) => {
+const query = `SELECT * FROM users WHERE id = ${req.params.id}`; // ❌ attacker-controlled input
+```
+
+## Issues by severity
+
+- **Critical — SQL injection**
+  - `req.params.id` is concatenated directly into the query
+  - `GET /api/users/1 OR 1=1--` returns every user in the table
+  - With `multipleStatements` enabled (mysql2), stacked queries work: `1; DROP TABLE users;--`
+- **High — no input validation**
+  - `req.params.id` arrives as a string, never checked to be an integer
+- **Medium — unhandled promise rejection**
+  - No `.catch` on `db.query` — a failed query rejects the promise
+  - Express 4 won't forward it: the request hangs, and newer Node versions may crash the process
+- **Context-dependent — over-exposure**
+  - `SELECT *` returns all columns (password hashes, email, …) to the client
+  - No authorization check — any caller can read any user's record (verify no auth middleware runs upstream)
+
+## Fix: parameterized query + error handling
+
+```js
+app.get('/api/users/:id', async (req, res, next) => {
   try {
-    if (!/^\d+$/.test(req.params.id)) {
-      return res.status(400).json({ error: 'Invalid id' });
-    }
-    const user = await db.query(
-      'SELECT id, name, email FROM users WHERE id = ?',
-      [req.params.id]
-    );
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: 'Internal server error' });
+    next(err);
   }
 });
 ```
 
-Changes:
-
-- **`?` placeholder + array parameter** — kills the SQL injection
-- **Regex guard** — only digits accepted
-- **Whitelisted columns** — no password/token leakage
-- **404 and 500 handling** — no undefined responses, no crashes
+- **Placeholder syntax** — `?` shown above; use `$1` if the driver is node-postgres
+- **Validate the format** — reject non-numeric ids before querying:
+  ```js
+  if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'invalid id' });
+  ```
+- **Tighten the response** — select only the columns the API needs (`id`, `name`, …) and return 404 when no row matches

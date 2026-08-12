@@ -1,44 +1,9 @@
-Here's the refactored version:
-
-```js
-async function getUser(id) {
-  const rows = await new Promise((resolve, reject) => {
-    db.query('SELECT * FROM users WHERE id = ?', [id], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-
-  if (!rows.length) throw new Error('Not found');
-  return rows[0];
-}
-```
-
-**Key changes:**
-
-- **No `callback` parameter** — the function returns a promise instead.
-- **Errors** → `throw` (async functions automatically reject the returned promise).
-- **Success** → `return rows[0]` instead of `callback(null, rows[0])`.
-- **"Not found"** → `throw new Error('Not found')` instead of passing it to the callback.
-
-**Caller now uses `await` or `.then()`:**
-
-```js
-try {
-  const user = await getUser(42);
-  console.log(user);
-} catch (err) {
-  console.error(err);
-}
-```
-
----
-
-**Alternative: `util.promisify` (cleaner if you reuse the query)**
+Here's the refactored version. Since the original `db.query` is callback-based, you'll need to wrap it in a Promise — or promisify it — before you can `await` it:
 
 ```js
 const { promisify } = require('util');
-const query = promisify(db.query).bind(db); // .bind(db) preserves `this`
+
+const query = promisify(db.query).bind(db);
 
 async function getUser(id) {
   const rows = await query('SELECT * FROM users WHERE id = ?', [id]);
@@ -47,16 +12,48 @@ async function getUser(id) {
 }
 ```
 
-> ⚠️ `bind(db)` matters — if `db.query` relies on `this` internally, promisifying it without binding can break it.
+**Key points:**
 
-**Bonus:** if your DB driver supports promises natively (e.g., `mysql2/promise`), you can skip the wrapper entirely:
+- `promisify(db.query).bind(db)` converts the callback API into a promise-returning function (`rows` is the first callback argument, which maps cleanly to the resolved value). `.bind(db)` preserves the correct `this` for the DB connection.
+- The `if (!rows.length) throw new Error('Not found')` behaves exactly like the original `callback(new Error('Not found'))` — because async functions automatically convert a thrown error into a **rejected** promise.
+- `return rows[0]` is the success path, mirroring the original `callback(null, rows[0])`.
+
+Because async functions always return promises, the **caller** changes from:
 
 ```js
-async function getUser(id) {
-  const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
-  if (!rows.length) throw new Error('Not found');
-  return rows[0];
+// Before
+getUser(id, (err, user) => {
+  if (err) console.error(err);
+  else console.log(user);
+});
+```
+
+to:
+
+```js
+// After
+try {
+  const user = await getUser(id);
+  console.log(user);
+} catch (err) {
+  console.error(err);
 }
 ```
 
-The behavior is identical to the original, but now errors propagate as rejected promises instead of callback arguments.
+or with `.catch()` if not inside an async function.
+
+**Alternative** (if you can't use `promisify`, or prefer an explicit wrapper):
+
+```js
+async function getUser(id) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM users WHERE id = ?', [id], (err, rows) => {
+      if (err) return reject(err);
+      if (!rows.length) return reject(new Error('Not found'));
+      resolve(rows[0]);
+    });
+  });
+}
+```
+
+Both produce identical behavior to the original, just with promises instead of callbacks.
