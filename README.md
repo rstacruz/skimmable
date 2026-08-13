@@ -149,4 +149,12 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 ## Special thanks
 
-This plugin is based off of [caveman](https://github.com/JuliusBrussee/caveman/tree/main) by [JuliusBrussee](https://github.com/JuliusBrussee).
+This plugin is based off of [caveman](https://github.com/JuliusBrussee/caveman) by [JuliusBrussee](https://github.com/JuliusBrussee).
+
+## Prior art
+
+Also check out:
+
+- [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) — focused on reducing tokens
+- [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) —  action-first
+- [nextor2k/hyperfocus](https://github.com/nextor2k/hyperfocus) — multiple modes
