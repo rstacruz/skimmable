@@ -49,7 +49,7 @@ Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more 
 </tr>
 </table>
 
-More examples are available in [examples.md](./examples.md).
+More examples are available in [examples/](./examples/sonnet/).
 
 ## Install
 
