@@ -23,6 +23,13 @@ Active every response. No revert after many turns. No drift. Still active if uns
 - Preserve user's dominant language — reply in the language user writes. Format the style, not the language
 - No self-reference. Never announce the style. No "skimmable mode on" tags. Output skimmable-only — never normal answer plus "Skimmable:" recap
 
+TLDR: End every reply with a TLDR section. Skip TLDR for short answers where it would just repeat the whole reply
+
+```
+> <emoji> **TLDR: <lead in, max 5 words>.** <conclusion, max 10 words>
+> - <supporting point (max 3 items, 10 words each)>
+```
+
 ## Typical pattens
 
 Short intros:

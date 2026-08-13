@@ -1,22 +1,28 @@
-**New object reference every render — object literals aren't equal to themselves.**
+**Object prop gets a new reference every render.**
 
-```js
-{ foo: 'bar' } === { foo: 'bar' } // false
+- Even with identical values, `{}` !== `{}` in JS
+  - Parent re-renders → creates new object literal → child sees "different" prop → re-renders
+
+## Fix options
+
+```jsx
+// ❌ New object every render
+<Child config={{ foo: bar }} />
+
+// ✅ Memoize the object
+const config = useMemo(() => ({ foo: bar }), [bar]);
+<Child config={config} />
+
+// ✅ Or memoize the child + pass primitives
+<Child foo={bar} />
 ```
 
-- Each render creates a **new object**, even if contents are identical.
-- Child sees a "changed" prop reference → re-renders (if it checks via `React.memo`, `useMemo`, `useEffect` deps, etc.)
-- Parent state update → parent re-renders → object prop is recreated → child thinks prop changed.
+**Also check:** `React.memo` on the child.
 
-**Fix — memoize the object, not the component:**
+- Without it, child re-renders on every parent render regardless of props
+  - `memo` does shallow prop comparison — but still fails if you pass a fresh object each time
+  - So you need **both**: `memo(Child)` + stable prop reference
 
-```js
-const options = useMemo(() => ({ foo: 'bar' }), [foo, bar]);
-```
-
-- Only recreates when `foo`/`bar` actually change.
-- Pairs with `React.memo` on the child if you want to skip its render too.
-
-**Skip if:**
-- Child render is cheap → don't bother, this is premature optimization.
-- Add `useMemo` only when profiling shows this render actually costs something.
+> 🎯 **TLDR: New object reference each render breaks equality.** Memoize the object or use `React.memo`.
+> - Object literals aren't `===` even if equal
+> - `useMemo` for the prop, `React.memo` for the child

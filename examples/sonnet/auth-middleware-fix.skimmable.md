@@ -1,21 +1,29 @@
-**Root cause: unit mismatch — `exp` is seconds, `Date.now()` is milliseconds.**
+**Bug: unit mismatch.** `exp` is seconds since epoch (JWT spec). `Date.now()` is milliseconds.
 
-- JWT `exp` claim = Unix seconds
-- `Date.now()` = Unix milliseconds
-- Comparing them directly makes every token look ~1000x further from expiry (effectively never expires)
-
-**Fix:**
+Comparing them directly makes tokens look 1000x further from expiry than they are — expired tokens still pass.
 
 ```js
-if (Date.now() >= decoded.exp * 1000) {
-  return res.status(401).json({ error: 'Token expired' });
+// ❌ wrong — exp (seconds) vs Date.now() (ms)
+if (decoded.exp < Date.now()) throw new Error('expired');
+
+// ✅ fix — convert one side
+if (decoded.exp * 1000 < Date.now()) throw new Error('expired');
+// or: if (decoded.exp < Date.now() / 1000)
+```
+
+Better: let `jwt.verify()` handle it — it already checks `exp` correctly and throws `TokenExpiredError`.
+
+```js
+const jwt = require('jsonwebtoken');
+
+try {
+  const decoded = jwt.verify(token, secret); // checks exp for you
+  req.user = decoded;
+  next();
+} catch (err) {
+  if (err.name === 'TokenExpiredError') return res.status(401).json({ error: 'Token expired' });
+  return res.status(401).json({ error: 'Invalid token' });
 }
 ```
 
-Or skip the manual check entirely — `jwt.verify()` already validates `exp` correctly and throws `TokenExpiredError`:
-
-```js
-jwt.verify(token, secret); // throws if expired, no manual math needed
-```
-
-→ **skipped:** manual expiry math. Use `jwt.verify()`'s built-in check, add manual comparison only if you need custom grace-period logic.
+`[code] → skipped: manual exp math, use jwt.verify's built-in check instead.`
