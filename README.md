@@ -159,3 +159,4 @@ Also check out:
 - [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) —  action-first
 - [nextor2k/hyperfocus](https://github.com/nextor2k/hyperfocus) — multiple modes
 - [Vistyy/nopus](https://github.com/Vistyy/nopus) — deterministic prose checks; requests a clearer rewrite
+- [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) — plain-English rewrites via local LLM; display-only
