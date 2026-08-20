@@ -37,9 +37,7 @@ export default function skimmable(pi: ExtensionAPI) {
   let on = true; // fresh pi process = fresh session = skimmable ON
   let needsRules = false; // set on compaction; consumed at next prompt
 
-  // After compaction the system prompt is gone — re-inject the full
-  // ruleset at the next user prompt (same mechanism as the Claude
-  // plugin's SessionStart refresh on source='compact').
+  // Compaction clears the system prompt, so re-inject the rules
   pi.on("session_compact", () => {
     needsRules = true;
   });
@@ -49,8 +47,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     const rules = readSkill() || FALLBACK_RULES;
 
-    // Full-ruleset injection — shared by activation and the compaction
-    // refresh so the two can never diverge.
+    // Shared injection path so activation and compaction refresh can't diverge
     const withRules = (systemPrompt: string) =>
       systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules;
 
@@ -75,7 +72,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (!on) return;
 
-    // Compaction wiped the ruleset — refresh it once, then back to reminders.
+    // After compaction, refresh once, then back to reminders
     if (needsRules) {
       needsRules = false;
       return { systemPrompt: withRules(event.systemPrompt) };
