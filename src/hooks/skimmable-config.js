@@ -126,22 +126,25 @@ function readState() {
   try {
     const p = statePath();
     const st = fs.lstatSync(p);
-    if (st.isSymbolicLink() || !st.isFile()) return {};
-    if (st.size > MAX_STATE_BYTES) return {};
+    if (st.isSymbolicLink() || !st.isFile()) return Object.create(null);
+    if (st.size > MAX_STATE_BYTES) return Object.create(null);
     const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
     const raw = fs.readFileSync(p, { encoding: 'utf8', flag: fs.constants.O_RDONLY | O_NOFOLLOW });
-    const state = JSON.parse(raw);
-    if (typeof state !== 'object' || state === null || Array.isArray(state)) return {};
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return Object.create(null);
+    // Null-prototype map so a hostile session_id like '__proto__' becomes a
+    // plain own property instead of hitting the prototype setter.
+    const state = Object.assign(Object.create(null), parsed);
     for (const key of Object.keys(state)) {
       const entry = state[key];
       if (typeof entry !== 'object' || entry === null ||
           !Number.isInteger(entry.turnCount) || entry.turnCount < 1) {
-        return {};
+        return Object.create(null);
       }
     }
     return state;
   } catch (e) {
-    return {};
+    return Object.create(null);
   }
 }
 
