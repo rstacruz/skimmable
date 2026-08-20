@@ -10,6 +10,7 @@ const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES, bumpTurnCount
 
 // Full ruleset cadence: every 3rd ON turn re-embeds the rules; turns 1–2
 // get the short reminder (session start already injects the ruleset).
+// Mirrored in extensions/skimmable.ts — change both in lockstep.
 const FULL_EVERY = 3;
 
 // Shared full-ruleset emission — activation and cadence refresh must not diverge.

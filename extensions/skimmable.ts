@@ -22,6 +22,7 @@ const REMINDER =
 
 // Full ruleset cadence: every 3rd ON turn re-embeds the rules (drift refresh).
 // In-memory counter — the event carries no session id; process restart resets.
+// Mirrored in src/hooks/skimmable-userpromptsubmit.js — change both in lockstep.
 const FULL_EVERY = 3;
 
 function readSkill(): string {
@@ -79,9 +80,11 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (!on) return;
 
-    // After compaction, refresh once, then back to reminders
+    // After compaction, refresh once, then back to reminders. Restart the
+    // cadence so the refresh embed isn't followed by a turn % 3 embed.
     if (needsRules) {
       needsRules = false;
+      turn = 0;
       return { systemPrompt: withRules(event.systemPrompt) };
     }
 
