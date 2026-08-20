@@ -5,7 +5,6 @@
 //    "skimmable mode" → on, emitting the full ruleset mid-session.
 // Skips scheduled-task prompts.
 
-const fs = require('fs');
 const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES, bumpTurnCount, resetTurnCount } = require('./skimmable-config');
 
 // Turns 1-2 get the short reminder: session start already injects the
