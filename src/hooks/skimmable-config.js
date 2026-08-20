@@ -75,8 +75,10 @@ function atomicWrite(dir, name, content) {
     } finally {
       try { fs.unlinkSync(temp); } catch (e) { /* already renamed */ }
     }
+    return true;
   } catch (e) {
     // Silent fail — file is best-effort
+    return false;
   }
 }
 
@@ -150,12 +152,15 @@ function readState() {
 
 // Bump and persist the session's turn count; returns the new count.
 // Missing/empty sessionId → 1, no write (no state file created).
+// Write failure → 1: degrade to the per-turn reminder (pre-cadence behavior)
+// instead of pinning the counter on a stale multiple of 3, which would embed
+// the full ruleset on every prompt.
 function bumpTurnCount(sessionId) {
   if (typeof sessionId !== 'string' || sessionId.length === 0) return 1;
   const state = readState();
   const n = (state[sessionId] && state[sessionId].turnCount) || 0;
   state[sessionId] = { turnCount: n + 1 };
-  atomicWrite(claudeDir(), STATE_NAME, JSON.stringify(state));
+  if (!atomicWrite(claudeDir(), STATE_NAME, JSON.stringify(state))) return 1;
   return n + 1;
 }
 
