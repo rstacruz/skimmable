@@ -49,6 +49,11 @@ export default function skimmable(pi: ExtensionAPI) {
 
     const rules = readSkill() || FALLBACK_RULES;
 
+    // Full-ruleset injection — shared by activation and the compaction
+    // refresh so the two can never diverge.
+    const withRules = (systemPrompt: string) =>
+      systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules;
+
     if (STOP_RE.test(prompt)) {
       on = false;
       needsRules = false;
@@ -65,7 +70,7 @@ export default function skimmable(pi: ExtensionAPI) {
       on = true;
       needsRules = false; // ruleset emitted below; don't double-inject
       // Emit the full ruleset on the activation turn itself.
-      return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
+      return { systemPrompt: withRules(event.systemPrompt) };
     }
 
     if (!on) return;
@@ -73,7 +78,7 @@ export default function skimmable(pi: ExtensionAPI) {
     // Compaction wiped the ruleset — refresh it once, then back to reminders.
     if (needsRules) {
       needsRules = false;
-      return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
+      return { systemPrompt: withRules(event.systemPrompt) };
     }
 
     // Per-turn reinforcement, so the style survives compaction — same
