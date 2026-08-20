@@ -6,7 +6,11 @@
 // Skips scheduled-task prompts.
 
 const fs = require('fs');
-const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES } = require('./skimmable-config');
+const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES, bumpTurnCount, resetTurnCount } = require('./skimmable-config');
+
+// Full ruleset cadence: every 3rd ON turn re-embeds the rules; turns 1–2
+// get the short reminder (session start already injects the ruleset).
+const FULL_EVERY = 3;
 
 const STOP_RE = /\b(stop skimmable|disable skimmable|deactivate skimmable|skimmable off|normal mode)\b/i;
 const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate skimmable|write skimmable)\b/i;
@@ -18,6 +22,7 @@ process.stdin.on('error', () => process.exit(0));
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(input);
+    const sessionId = data.session_id;
     // Collapse whitespace so phrase triggers match multiline prompts.
     const prompt = (data.prompt || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -28,17 +33,26 @@ process.stdin.on('end', () => {
 
     if (STOP_RE.test(prompt)) {
       clearFlag();
+      resetTurnCount(sessionId);
       out.hookSpecificOutput.additionalContext =
         'SKIMMABLE OFF — reply in normal format from now on.';
     } else if (START_RE.test(prompt)) {
       safeWriteFlag('1');
+      resetTurnCount(sessionId);
       out.hookSpecificOutput.additionalContext =
         'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
     } else if (isOn()) {
-      out.hookSpecificOutput.additionalContext =
-        'SKIMMABLE ACTIVE — format replies for skimmability. ' +
-        'Short sentences. Lists over paragraphs. Code blocks for illustration. ' +
-        'Code, identifiers, paths, commands, URLs, error strings: verbatim.';
+      const turn = bumpTurnCount(sessionId);
+      if (turn % FULL_EVERY === 0) {
+        // Every 3rd ON turn: re-embed the full ruleset (drift refresh).
+        out.hookSpecificOutput.additionalContext =
+          'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
+      } else {
+        out.hookSpecificOutput.additionalContext =
+          'SKIMMABLE ACTIVE — format replies for skimmability. ' +
+          'Short sentences. Lists over paragraphs. Code blocks for illustration. ' +
+          'Code, identifiers, paths, commands, URLs, error strings: verbatim.';
+      }
     } else {
       return; // off, no trigger — emit nothing
     }

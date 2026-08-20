@@ -4,6 +4,7 @@
 
 ### 🔧 Improvements
 
+- **Drift refresh**: the full ruleset is re-embedded every 3rd ON turn — Claude via a per-session turn counter in a state file, Pi via an in-memory counter.
 - **Compaction refresh**: the full ruleset is re-injected after context compaction — Pi via the `session_compact` event, Claude via the existing SessionStart hook.
 
 ## v1.0.3 - 2026-08-13

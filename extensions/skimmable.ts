@@ -20,6 +20,10 @@ const REMINDER =
   "Short sentences. Lists over paragraphs. Code blocks for illustration. " +
   "Code, identifiers, paths, commands, URLs, error strings: verbatim.";
 
+// Full ruleset cadence: every 3rd ON turn re-embeds the rules (drift refresh).
+// In-memory counter — the event carries no session id; process restart resets.
+const FULL_EVERY = 3;
+
 function readSkill(): string {
   const candidates = [
     resolve(__dirname, "..", "skills", "skimmable", "SKILL.md"),
@@ -35,6 +39,7 @@ function readSkill(): string {
 
 export default function skimmable(pi: ExtensionAPI) {
   let on = true; // fresh pi process = fresh session = skimmable ON
+  let turn = 0; // ON-turn counter for the every-3rd full-ruleset cadence
   let needsRules = false; // set on compaction; consumed at next prompt
 
   // Compaction clears the system prompt, so re-inject the rules
@@ -53,6 +58,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (STOP_RE.test(prompt)) {
       on = false;
+      turn = 0; // reset cadence on toggle off
       needsRules = false;
       return {
         message: {
@@ -65,6 +71,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (START_RE.test(prompt)) {
       on = true;
+      turn = 0; // reset cadence on toggle on
       needsRules = false; // ruleset emitted below; don't double-inject
       // Emit the full ruleset on the activation turn itself.
       return { systemPrompt: withRules(event.systemPrompt) };
@@ -75,6 +82,13 @@ export default function skimmable(pi: ExtensionAPI) {
     // After compaction, refresh once, then back to reminders
     if (needsRules) {
       needsRules = false;
+      return { systemPrompt: withRules(event.systemPrompt) };
+    }
+
+    // Every 3rd ON turn re-embeds the full ruleset (drift refresh) — same
+    // cadence as the Claude hook; other turns get the short reminder.
+    turn += 1;
+    if (turn % FULL_EVERY === 0) {
       return { systemPrompt: withRules(event.systemPrompt) };
     }
 
