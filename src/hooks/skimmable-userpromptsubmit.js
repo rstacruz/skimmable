@@ -43,8 +43,11 @@ process.stdin.on('end', () => {
       out.hookSpecificOutput.additionalContext =
         'SKIMMABLE OFF — reply in normal format from now on.';
     } else if (START_RE.test(prompt)) {
+      const wasOn = isOn();
       safeWriteFlag('1');
-      resetTurnCount(sessionId);
+      // A real off→on activation restarts the cadence; an already-on session
+      // merely re-emphasizing (or asking about the feature) must not shift it.
+      if (!wasOn) resetTurnCount(sessionId);
       out.hookSpecificOutput.additionalContext = fullRules();
     } else if (isOn()) {
       const turn = bumpTurnCount(sessionId);

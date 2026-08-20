@@ -71,8 +71,11 @@ export default function skimmable(pi: ExtensionAPI) {
     }
 
     if (START_RE.test(prompt)) {
+      const wasOn = on;
       on = true;
-      turn = 0; // reset cadence on toggle on
+      // Only a real off→on activation restarts the cadence; re-emphasizing on
+      // an already-on session (or asking about the feature) must not shift it.
+      if (!wasOn) turn = 0;
       needsRules = false; // ruleset emitted below; don't double-inject
       // Emit the full ruleset on the activation turn itself.
       return { systemPrompt: withRules(event.systemPrompt) };
