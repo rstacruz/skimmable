@@ -35,6 +35,14 @@ function readSkill(): string {
 
 export default function skimmable(pi: ExtensionAPI) {
   let on = true; // fresh pi process = fresh session = skimmable ON
+  let needsRules = false; // set on compaction; consumed at next prompt
+
+  // After compaction the system prompt is gone — re-inject the full
+  // ruleset at the next user prompt (same mechanism as the Claude
+  // plugin's SessionStart refresh on source='compact').
+  pi.on("session_compact", () => {
+    needsRules = true;
+  });
 
   pi.on("before_agent_start", async (event) => {
     const prompt = event.prompt.trim().toLowerCase().replace(/\s+/g, " ");
@@ -43,6 +51,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (STOP_RE.test(prompt)) {
       on = false;
+      needsRules = false;
       return {
         message: {
           customType: "skimmable",
@@ -54,11 +63,18 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (START_RE.test(prompt)) {
       on = true;
+      needsRules = false; // ruleset emitted below; don't double-inject
       // Emit the full ruleset on the activation turn itself.
       return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
     }
 
     if (!on) return;
+
+    // Compaction wiped the ruleset — refresh it once, then back to reminders.
+    if (needsRules) {
+      needsRules = false;
+      return { systemPrompt: event.systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules };
+    }
 
     // Per-turn reinforcement, so the style survives compaction — same
     // mechanism as the Claude plugin's UserPromptSubmit additionalContext.
