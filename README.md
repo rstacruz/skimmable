@@ -94,9 +94,9 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 ## How it works
 
 - **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
-- **UserPromptSubmit hook** re-reinforces the style every turn; it also implements the natural-language toggle.
+- **UserPromptSubmit hook** re-reinforces the style every turn; every 3rd ON turn it re-embeds the full ruleset (drift refresh). It also implements the natural-language toggle.
 - **Compaction refresh** — after context compaction the full ruleset is re-injected at the next prompt: Claude re-fires SessionStart with `source='compact'`, Pi fires `session_compact` and refreshes on the next turn. Between compactions the per-turn reminder carries the style.
-- **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
+- **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off — plus a state file at `$CLAUDE_CONFIG_DIR/.skimmable-state` holding per-session turn counts for the 3-turn cadence.
 
 ## Token cost
 
