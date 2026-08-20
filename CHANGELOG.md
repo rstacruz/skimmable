@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### 🔧 Improvements
+
+- **Compaction refresh**: the full ruleset is re-injected after context compaction — Pi via the `session_compact` event, Claude via the existing SessionStart hook.
+
 ## v1.0.3 - 2026-08-13
 
 ### ✨ Features
