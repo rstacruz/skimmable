@@ -20,9 +20,9 @@ const REMINDER =
   "Short sentences. Lists over paragraphs. Code blocks for illustration. " +
   "Code, identifiers, paths, commands, URLs, error strings: verbatim.";
 
-// Full ruleset cadence: every 3rd ON turn re-embeds the rules (drift refresh).
-// In-memory counter — the event carries no session id; process restart resets.
-// Mirrored in src/hooks/skimmable-userpromptsubmit.js — change both in lockstep.
+// Every 3rd ON turn re-embeds the rules (drift refresh). The counter is
+// in-memory: the event carries no session id, so a restart resets it
+// Mirrored in src/hooks/skimmable-userpromptsubmit.js; change both in lockstep
 const FULL_EVERY = 3;
 
 function readSkill(): string {
@@ -40,7 +40,7 @@ function readSkill(): string {
 
 export default function skimmable(pi: ExtensionAPI) {
   let on = true; // fresh pi process = fresh session = skimmable ON
-  let turn = 0; // ON-turn counter for the every-3rd full-ruleset cadence
+  let turn = 0;
   let needsRules = false; // set on compaction; consumed at next prompt
 
   // Compaction clears the system prompt, so re-inject the rules
@@ -59,7 +59,7 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (STOP_RE.test(prompt)) {
       on = false;
-      turn = 0; // reset cadence on toggle off
+      turn = 0;
       needsRules = false;
       return {
         message: {
@@ -73,8 +73,8 @@ export default function skimmable(pi: ExtensionAPI) {
     if (START_RE.test(prompt)) {
       const wasOn = on;
       on = true;
-      // Only a real off→on activation restarts the cadence; re-emphasizing on
-      // an already-on session (or asking about the feature) must not shift it.
+      // Only a real off-to-on activation restarts the cadence; re-emphasizing
+      // on an already-on session (or asking about the feature) must not shift it
       if (!wasOn) turn = 0;
       needsRules = false; // ruleset emitted below; don't double-inject
       // Emit the full ruleset on the activation turn itself.
@@ -83,16 +83,14 @@ export default function skimmable(pi: ExtensionAPI) {
 
     if (!on) return;
 
-    // After compaction, refresh once, then back to reminders. Restart the
-    // cadence so the refresh embed isn't followed by a turn % 3 embed.
+    // Restart the cadence after the compaction refresh so it isn't followed
+    // by a turn % 3 embed
     if (needsRules) {
       needsRules = false;
       turn = 0;
       return { systemPrompt: withRules(event.systemPrompt) };
     }
 
-    // Every 3rd ON turn re-embeds the full ruleset (drift refresh) — same
-    // cadence as the Claude hook; other turns get the short reminder.
     turn += 1;
     if (turn % FULL_EVERY === 0) {
       return { systemPrompt: withRules(event.systemPrompt) };

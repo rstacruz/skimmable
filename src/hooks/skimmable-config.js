@@ -82,7 +82,6 @@ function atomicWrite(dir, name, content) {
   }
 }
 
-// Flag toggle — delegates to the shared atomic write.
 function safeWriteFlag(content) {
   atomicWrite(path.dirname(flagPath()), FLAG_NAME, content);
 }
@@ -119,11 +118,9 @@ function clearFlag() {
   } catch (e) { /* already gone */ }
 }
 
-// Per-session turn counts for the every-3rd-turn full-ruleset cadence.
-// Same symlink-safety posture as the flag file; all silent-fail.
-
-// Symlink-safe, size-capped read; any error or invalid entry → {} — the file
-// self-heals because the next write rewrites it with only the current entry.
+// Symlink-safe, size-capped read; any error or invalid entry falls back to
+// {}; the file self-heals because the next write rewrites it with only the
+// current entry
 function readState() {
   try {
     const p = statePath();
@@ -150,11 +147,9 @@ function readState() {
   }
 }
 
-// Bump and persist the session's turn count; returns the new count.
-// Missing/empty sessionId → 1, no write (no state file created).
-// Write failure → 1: degrade to the per-turn reminder (pre-cadence behavior)
-// instead of pinning the counter on a stale multiple of 3, which would embed
-// the full ruleset on every prompt.
+// Write failure falls back to 1: degrade to the per-turn reminder
+// (pre-cadence behavior) instead of pinning the counter on a stale multiple
+// of 3, which would embed the full ruleset on every prompt
 function bumpTurnCount(sessionId) {
   if (typeof sessionId !== 'string' || sessionId.length === 0) return 1;
   const state = readState();
@@ -164,7 +159,7 @@ function bumpTurnCount(sessionId) {
   return n + 1;
 }
 
-// Delete the session's entry; write only if it changed.
+// Delete the entry; write only if it changed
 function resetTurnCount(sessionId) {
   if (typeof sessionId !== 'string' || sessionId.length === 0) return;
   const state = readState();

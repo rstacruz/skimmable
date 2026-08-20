@@ -8,12 +8,11 @@
 const fs = require('fs');
 const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES, bumpTurnCount, resetTurnCount } = require('./skimmable-config');
 
-// Full ruleset cadence: every 3rd ON turn re-embeds the rules; turns 1–2
-// get the short reminder (session start already injects the ruleset).
-// Mirrored in extensions/skimmable.ts — change both in lockstep.
+// Turns 1-2 get the short reminder: session start already injects the
+// ruleset. Mirrored in extensions/skimmable.ts; change both in lockstep
 const FULL_EVERY = 3;
 
-// Shared full-ruleset emission — activation and cadence refresh must not diverge.
+// Activation and cadence refresh must not diverge
 function fullRules() {
   return 'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
 }
@@ -45,14 +44,13 @@ process.stdin.on('end', () => {
     } else if (START_RE.test(prompt)) {
       const wasOn = isOn();
       safeWriteFlag('1');
-      // A real off→on activation restarts the cadence; an already-on session
-      // merely re-emphasizing (or asking about the feature) must not shift it.
+      // A real off-to-on activation restarts the cadence; an already-on session
+      // merely re-emphasizing (or asking about the feature) must not shift it
       if (!wasOn) resetTurnCount(sessionId);
       out.hookSpecificOutput.additionalContext = fullRules();
     } else if (isOn()) {
       const turn = bumpTurnCount(sessionId);
       if (turn % FULL_EVERY === 0) {
-        // Every 3rd ON turn: re-embed the full ruleset (drift refresh).
         out.hookSpecificOutput.additionalContext = fullRules();
       } else {
         out.hookSpecificOutput.additionalContext =
