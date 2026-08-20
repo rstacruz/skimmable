@@ -12,6 +12,11 @@ const { isOn, safeWriteFlag, clearFlag, readSkill, FALLBACK_RULES, bumpTurnCount
 // get the short reminder (session start already injects the ruleset).
 const FULL_EVERY = 3;
 
+// Shared full-ruleset emission — activation and cadence refresh must not diverge.
+function fullRules() {
+  return 'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
+}
+
 const STOP_RE = /\b(stop skimmable|disable skimmable|deactivate skimmable|skimmable off|normal mode)\b/i;
 const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate skimmable|write skimmable)\b/i;
 
@@ -39,14 +44,12 @@ process.stdin.on('end', () => {
     } else if (START_RE.test(prompt)) {
       safeWriteFlag('1');
       resetTurnCount(sessionId);
-      out.hookSpecificOutput.additionalContext =
-        'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
+      out.hookSpecificOutput.additionalContext = fullRules();
     } else if (isOn()) {
       const turn = bumpTurnCount(sessionId);
       if (turn % FULL_EVERY === 0) {
         // Every 3rd ON turn: re-embed the full ruleset (drift refresh).
-        out.hookSpecificOutput.additionalContext =
-          'SKIMMABLE MODE ACTIVE\n\n' + (readSkill() || FALLBACK_RULES);
+        out.hookSpecificOutput.additionalContext = fullRules();
       } else {
         out.hookSpecificOutput.additionalContext =
           'SKIMMABLE ACTIVE — format replies for skimmability. ' +
