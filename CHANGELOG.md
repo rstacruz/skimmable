@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-### 🔧 Improvements
+### ✨ Features
 
-- **Compaction refresh**: the full ruleset is re-injected after context compaction — Pi via the `session_compact` event, Claude via the existing SessionStart hook.
+- **Output style replaces hooks**: skimmable now applies via a `force-for-plugin` output style (`output-styles/skimmable.md`) instead of the SessionStart/UserPromptSubmit hooks. The ruleset lives in the system prompt, survives compaction, and gets built-in per-turn adherence reminders. Subagent styling is dropped — output styles are main-conversation only.
+- **PERSONALITY.md as the single source of truth**: the ruleset now lives in `PERSONALITY.md`; `scripts/sync-files.sh` syncs it into the skill and output style, and a CI check fails on drift.
 
 ## v1.0.3 - 2026-08-13
 

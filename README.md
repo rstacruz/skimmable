@@ -61,6 +61,8 @@ claude plugin marketplace add https://github.com/rstacruz/skimmable && claude pl
 
 Update to a new version with `/plugin marketplace update`.
 
+Output styles take effect in a new session — run `/clear` or start a fresh session after installing. Requires a Claude Code version with plugin output-style support (`force-for-plugin`); on older versions, copy `output-styles/skimmable.md` into `~/.claude/output-styles/` and select it via `/config`.
+
 ### Pi
 
 ```bash
@@ -69,17 +71,13 @@ pi install git:github.com/rstacruz/skimmable
 
 ### All other agents
 
-For other agents, it doesn't auto-enable, but you may invoke it manually via `/skimmable`.
-
-```bash
-npx skills add rstacruz/skimmable
-```
+For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy the section between the `## Skimmable output style` and `<!-- end -->` markers in [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md` (markers excluded).
 
 ## Usage
 
 Nothing to do — skimmable is on from the first prompt of every fresh session.
 
-- **Turn it off** — say `stop skimmable` (or `normal mode`). Lasts the rest of the session.
+- **Turn it off** — say `stop skimmable` (or `normal mode`). Advisory: the toggle is instruction-following rather than a hard switch, so it may not hold for the entire session.
 - **Turn it back on** — say `skimmable`. Works mid-session, no restart.
 - **New session** — on again by default.
 
@@ -93,10 +91,11 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 ## How it works
 
-- **SessionStart hook** injects the ruleset (from `skills/skimmable/SKILL.md`) as hidden system context before the first prompt.
-- **UserPromptSubmit hook** re-reinforces the style every turn; it also implements the natural-language toggle.
-- **Compaction refresh** — after context compaction the full ruleset is re-injected at the next prompt: Claude re-fires SessionStart with `source='compact'`, Pi fires `session_compact` and refreshes on the next turn. Between compactions the per-turn reminder carries the style.
-- **State** is one flag file at `$CLAUDE_CONFIG_DIR/.skimmable-active` — exists = on, absent = off.
+- **One canonical source** — the ruleset lives in [PERSONALITY.md](./PERSONALITY.md). `scripts/sync-files.sh` syncs it into the skill and the output style; CI runs the sync check on every push and PR.
+- **Claude output style** — the plugin ships `output-styles/skimmable.md` with `force-for-plugin: true`, so it auto-applies. The style lives in the system prompt (survives compaction) and carries built-in per-turn adherence reminders. It replaces the old SessionStart/UserPromptSubmit hooks.
+- **Toggle** — `stop skimmable` / `normal mode` are honored as instructions inside the style text.
+- **Pi** — the extension injects the same skill; behavior unchanged.
+- **Subagents** — the hooks used to run inside subagent sessions; output styles are main-conversation only, so subagents are no longer styled.
 
 ## Token cost
 
@@ -161,3 +160,4 @@ Also check out:
 - [nextor2k/hyperfocus](https://github.com/nextor2k/hyperfocus) — multiple modes
 - [Vistyy/nopus](https://github.com/Vistyy/nopus) — deterministic prose checks; requests a clearer rewrite
 - [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) — plain-English rewrites via local LLM; display-only
+- [raiyanyahya/justsaydone](https://github.com/raiyanyahya/justsaydone) — "done"-mode output style with `force-for-plugin`, same mechanism as this rework
