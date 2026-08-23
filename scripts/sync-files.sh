@@ -31,7 +31,7 @@ for f in "$source" "${targets[@]}"; do
   [ "$(grep -c -F "$end" "$f")" -eq 1 ] || { echo "error: expected exactly one '$end' in $f" >&2; exit 1; }
 done
 
-tmp_spec="$(mktemp)"
+tmp_spec="$(mktemp "${TMPDIR:-/tmp}/skimmable-sync.XXXXXX")"
 tmp_files=()
 trap 'rm -f "$tmp_spec" "${tmp_files[@]}"' EXIT
 
@@ -40,7 +40,7 @@ sed -n "/$start/,/$end/p" "$source" > "$tmp_spec"
 
 out_of_sync=0
 for target in "${targets[@]}"; do
-  tmp="$(mktemp)"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/skimmable-sync.XXXXXX")"
   tmp_files+=("$tmp")
 
   # Splice the canonical region into the target, replacing its existing region.
