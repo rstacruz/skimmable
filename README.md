@@ -63,11 +63,17 @@ Update to a new version with `/plugin marketplace update`.
 
 Output styles take effect in a new session — run `/clear` or start a fresh session after installing. Requires a Claude Code version with plugin output-style support (`force-for-plugin`); on older versions, copy `output-styles/skimmable.md` into `~/.claude/output-styles/` and select it via `/config`.
 
-### Pi
+### Oh-My-Pi
 
 ```bash
-pi install git:github.com/rstacruz/skimmable
+curl -fsSL --create-dirs \
+  https://raw.githubusercontent.com/rstacruz/skimmable/main/PERSONALITY.md \
+  -o ~/.omp/agent/PERSONALITY.md
 ```
+
+Oh-My-Pi reads `~/.omp/agent/PERSONALITY.md` as its personality block. It's a snapshot — re-run the command to update.
+
+### All other agents
 
 ### All other agents
 
