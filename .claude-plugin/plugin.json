@@ -1,35 +1,9 @@
 {
   "name": "skimmable",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Every Claude Code reply formatted for skimmability: short sentences, lists over paragraphs, code blocks for illustration.",
   "author": {
     "name": "Rico Sta. Cruz",
     "url": "https://github.com/rstacruz"
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-sessionstart.js\"",
-            "timeout": 5,
-            "statusMessage": "Loading skimmable mode..."
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/skimmable-userpromptsubmit.js\"",
-            "timeout": 5,
-            "statusMessage": "Tracking skimmable mode..."
-          }
-        ]
-      }
-    ]
   }
 }
