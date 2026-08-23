@@ -71,7 +71,7 @@ pi install git:github.com/rstacruz/skimmable
 
 ### All other agents
 
-For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy the section between the `## Skimmable output style` and `<!-- end -->` markers in [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md` (markers excluded).
+For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md` — the `## Skimmable output style` / `<!-- end -->` markers mark the section to keep.
 
 ## Usage
 
