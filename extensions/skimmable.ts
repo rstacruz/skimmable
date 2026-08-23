@@ -27,7 +27,13 @@ function readSkill(): string {
   ];
   for (const candidate of candidates) {
     try {
-      return readFileSync(candidate, "utf8").replace(/^---[\s\S]*?---\s*/, "");
+      return readFileSync(candidate, "utf8")
+        // Strip YAML frontmatter, then the sync markers (heading + end
+        // comment, with their adjacent blank lines) so the injected prompt
+        // is byte-identical to the pre-marker ruleset.
+        .replace(/^---[\s\S]*?---\s*/, "")
+        .replace(/^## Skimmable output style\r?\n\r?\n/, "")
+        .replace(/\r?\n<!-- end -->\r?\n?$/, "");
     } catch { /* try next */ }
   }
   return "";
@@ -78,8 +84,8 @@ export default function skimmable(pi: ExtensionAPI) {
       return { systemPrompt: withRules(event.systemPrompt) };
     }
 
-    // Per-turn reinforcement, so the style survives compaction — same
-    // mechanism as the Claude plugin's UserPromptSubmit additionalContext.
+    // Per-turn reinforcement, so the style survives compaction — on Claude,
+    // the output style provides its own built-in per-turn reminders.
     return { systemPrompt: event.systemPrompt + "\n\n" + REMINDER };
   });
 }

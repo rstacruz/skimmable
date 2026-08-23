@@ -6,9 +6,9 @@
  *  results/*.json schema, so consumers (README table, results JSON) are unchanged.
  *
  *  Runs `claude -p` (no --bare: --bare's auth path doesn't pick up this
- *  machine's login, so hooks/plugins run for every call). This means the
- *  "normal" baseline is NOT clean of globally-installed plugins (skimmable,
- *  ponytail, etc.) that inject via SessionStart — known limitation.
+ *  machine's login, so plugins run for every call). This means the
+ *  "normal" baseline is NOT clean of globally-installed plugins (skimmable
+ *  via its force-for-plugin output style, ponytail, etc.) — known limitation.
  */
 
 import { parseArgs } from "node:util";
@@ -37,13 +37,16 @@ type Summary = { avg_savings: number; min_savings: number; max_savings: number; 
 const loadPrompts = (): Prompt[] => JSON.parse(readFileSync(PROMPTS_PATH, "utf8")).prompts;
 
 const loadSkimmableSystem = (): string => {
-  // Match src/hooks/skimmable-config.js: YAML frontmatter is stripped before
-  // the ruleset is injected, so benchmark what actually ships.
+  // Strip YAML frontmatter, then the sync markers (heading + end comment,
+  // with their adjacent blank lines) so the injected prompt is byte-identical
+  // to the pre-marker ruleset.
   let content = readFileSync(SKILL_PATH, "utf8");
   if (content.startsWith("---")) {
     const parts = content.split("---");
     if (parts.length >= 3) content = parts.slice(2).join("---");
   }
+  content = content.replace(/## Skimmable output style\r?\n\r?\n/, "");
+  content = content.replace(/\r?\n<!-- end -->\r?\n?$/, "");
   return content;
 };
 

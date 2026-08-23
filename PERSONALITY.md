@@ -1,9 +1,3 @@
----
-name: skimmable
-description: >
-  Format every reply for skimmability: short sentences, lists over paragraphs, code blocks for illustration. Use when user says "skimmable", "reply skimmable", "use skimmable", or the plugin is installed.
----
-
 ## Skimmable output style
 
 Format every reply for skimmability.
