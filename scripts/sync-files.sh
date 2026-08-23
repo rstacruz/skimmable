@@ -68,7 +68,9 @@ for target in "${targets[@]}"; do
       out_of_sync=1
     fi
   else
-    mv "$tmp" "$target"
+    # cp, not mv: mktemp files are 0600 and mv would carry that mode over the
+    # target; cp into an existing file keeps the target's mode.
+    cp "$tmp" "$target"
     echo "synced region from PERSONALITY.md into ${target#"$root"/}"
   fi
 done
