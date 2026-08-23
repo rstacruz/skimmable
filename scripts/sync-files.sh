@@ -27,8 +27,10 @@ end='<!-- end -->'
 # stray marker inside the body can never silently truncate the extraction.
 for f in "$source" "${targets[@]}"; do
   [ -f "$f" ] || { echo "error: missing $f" >&2; exit 1; }
-  [ "$(grep -c -F "$start" "$f")" -eq 1 ] || { echo "error: expected exactly one '$start' in $f" >&2; exit 1; }
-  [ "$(grep -c -F "$end" "$f")" -eq 1 ] || { echo "error: expected exactly one '$end' in $f" >&2; exit 1; }
+  # `|| true` keeps the substitution's exit status from interacting with
+  # `set -e` across shell versions, so the explicit error below always runs.
+  [ "$(grep -c -F "$start" "$f" || true)" -eq 1 ] || { echo "error: expected exactly one '$start' in $f" >&2; exit 1; }
+  [ "$(grep -c -F "$end" "$f" || true)" -eq 1 ] || { echo "error: expected exactly one '$end' in $f" >&2; exit 1; }
 done
 
 tmp_spec="$(mktemp "${TMPDIR:-/tmp}/skimmable-sync.XXXXXX")"
@@ -57,8 +59,8 @@ for target in "${targets[@]}"; do
   ' "$target" > "$tmp"
 
   # Sanity: the splice must not have dropped the markers.
-  [ "$(grep -c -F "$start" "$tmp")" -eq 1 ] || { echo "error: splice failed for $target" >&2; exit 1; }
-  [ "$(grep -c -F "$end" "$tmp")" -eq 1 ] || { echo "error: splice failed for $target" >&2; exit 1; }
+  [ "$(grep -c -F "$start" "$tmp" || true)" -eq 1 ] || { echo "error: splice failed for $target" >&2; exit 1; }
+  [ "$(grep -c -F "$end" "$tmp" || true)" -eq 1 ] || { echo "error: splice failed for $target" >&2; exit 1; }
 
   if [ "$check_only" -eq 1 ]; then
     if cmp -s "$tmp" "$target"; then
