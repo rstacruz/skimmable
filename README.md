@@ -100,7 +100,7 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 - **One canonical source** — the ruleset lives in [PERSONALITY.md](./PERSONALITY.md). `scripts/sync-files.sh` syncs it into the skill and the output style; CI runs the sync check on every push and PR.
 - **Claude output style** — the plugin ships `output-styles/skimmable.md` with `force-for-plugin: true`, so it auto-applies. The style lives in the system prompt (survives compaction) and carries built-in per-turn adherence reminders. It replaces the old SessionStart/UserPromptSubmit hooks.
 - **Toggle** — `stop skimmable` / `normal mode` are honored as instructions inside the style text.
-- **Pi** — the extension injects the same skill; behavior unchanged.
+- **Pi** — the extension injects the same skill.
 - **Subagents** — the hooks used to run inside subagent sessions; output styles are main-conversation only, so subagents are no longer styled.
 
 ## Token cost
