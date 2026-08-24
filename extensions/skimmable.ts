@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readFileSync } from "fs";
 import { homedir } from "os";
 import { join, resolve } from "path";
+import { stripSkillMarkers } from "../src/utils/skill";
 
 const STOP_RE = /\b(stop skimmable|disable skimmable|deactivate skimmable|skimmable off|normal mode)\b/i;
 const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate skimmable|write skimmable)\b/i;
@@ -27,13 +28,7 @@ function readSkill(): string {
   ];
   for (const candidate of candidates) {
     try {
-      return readFileSync(candidate, "utf8")
-        // Strip YAML frontmatter, then the sync markers (heading + end
-        // comment, with their adjacent blank lines) so the injected prompt
-        // is byte-identical to the pre-marker ruleset.
-        .replace(/^---[\s\S]*?---\s*/, "")
-        .replace(/^## Skimmable output style\r?\n\r?\n/, "")
-        .replace(/\r?\n<!-- end -->\r?\n?$/, "");
+      return stripSkillMarkers(readFileSync(candidate, "utf8"));
     } catch { /* try next */ }
   }
   return "";

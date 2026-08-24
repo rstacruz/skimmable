@@ -18,8 +18,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PromiseQueue } from "../src/utils/pqueue";
 import { callClaude, type CallResult } from "../src/utils/claude";
+import { stripSkillMarkers } from "../src/utils/skill";
 
-const SCRIPT_VERSION = "1.3.0";
+const SCRIPT_VERSION = "1.3.1";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_DIR = join(HERE, "..");
 const PROMPTS_PATH = join(HERE, "prompts.json");
@@ -36,19 +37,7 @@ type Summary = { avg_savings: number; min_savings: number; max_savings: number; 
 
 const loadPrompts = (): Prompt[] => JSON.parse(readFileSync(PROMPTS_PATH, "utf8")).prompts;
 
-const loadSkimmableSystem = (): string => {
-  // Strip YAML frontmatter, then the sync markers (heading + end comment,
-  // with their adjacent blank lines) so the injected prompt is byte-identical
-  // to the pre-marker ruleset.
-  let content = readFileSync(SKILL_PATH, "utf8");
-  if (content.startsWith("---")) {
-    const parts = content.split("---");
-    if (parts.length >= 3) content = parts.slice(2).join("---");
-  }
-  content = content.replace(/## Skimmable output style\r?\n\r?\n/, "");
-  content = content.replace(/\r?\n<!-- end -->\r?\n?$/, "");
-  return content;
-};
+const loadSkimmableSystem = (): string => stripSkillMarkers(readFileSync(SKILL_PATH, "utf8"));
 
 const sha256File = async (p: string) =>
   new Bun.CryptoHasher("sha256").update(await Bun.file(p).arrayBuffer()).digest("hex");

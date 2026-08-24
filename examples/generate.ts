@@ -19,6 +19,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PromiseQueue } from "../src/utils/pqueue";
 import { callClaude } from "../src/utils/claude";
+import { stripSkillMarkers } from "../src/utils/skill";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -55,15 +56,9 @@ const OUT_DIR = values["out-dir"] ? resolve(values["out-dir"]) : HERE;
 mkdirSync(OUT_DIR, { recursive: true });
 
 const bare = mode === "default";
-// Strip YAML frontmatter (--- ... ---) from the skill, then the sync markers
-// (heading + end comment, with their adjacent blank lines) so only the body
-// is injected — byte-identical to the pre-marker skill.
 const systemPrompt = bare
   ? undefined
-  : readFileSync(SKILL_PATH, "utf8")
-      .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
-      .replace(/## Skimmable output style\r?\n\r?\n/, "")
-      .replace(/\r?\n<!-- end -->\r?\n?$/, "");
+  : stripSkillMarkers(readFileSync(SKILL_PATH, "utf8"));
 const { prompts }: { prompts: Prompt[] } = JSON.parse(readFileSync(PROMPTS_PATH, "utf8"));
 const selected = prompts.slice(0, limit);
 const outFile = (id: string) => join(OUT_DIR, `${id}.${mode}.md`);
