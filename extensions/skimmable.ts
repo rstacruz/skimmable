@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readFileSync } from "fs";
 import { homedir } from "os";
 import { join, resolve } from "path";
+import { stripSkillMarkers } from "../src/utils/skill";
 
 const STOP_RE = /\b(stop skimmable|disable skimmable|deactivate skimmable|skimmable off|normal mode)\b/i;
 const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate skimmable|write skimmable)\b/i;
@@ -27,7 +28,7 @@ function readSkill(): string {
   ];
   for (const candidate of candidates) {
     try {
-      return readFileSync(candidate, "utf8").replace(/^---[\s\S]*?---\s*/, "");
+      return stripSkillMarkers(readFileSync(candidate, "utf8"));
     } catch { /* try next */ }
   }
   return "";
@@ -78,8 +79,8 @@ export default function skimmable(pi: ExtensionAPI) {
       return { systemPrompt: withRules(event.systemPrompt) };
     }
 
-    // Per-turn reinforcement, so the style survives compaction — same
-    // mechanism as the Claude plugin's UserPromptSubmit additionalContext.
+    // Per-turn reinforcement, so the style survives compaction — on Claude,
+    // the output style provides its own built-in per-turn reminders.
     return { systemPrompt: event.systemPrompt + "\n\n" + REMINDER };
   });
 }

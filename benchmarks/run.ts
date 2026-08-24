@@ -6,9 +6,9 @@
  *  results/*.json schema, so consumers (README table, results JSON) are unchanged.
  *
  *  Runs `claude -p` (no --bare: --bare's auth path doesn't pick up this
- *  machine's login, so hooks/plugins run for every call). This means the
- *  "normal" baseline is NOT clean of globally-installed plugins (skimmable,
- *  ponytail, etc.) that inject via SessionStart — known limitation.
+ *  machine's login, so plugins run for every call). This means the
+ *  "normal" baseline is NOT clean of globally-installed plugins (skimmable
+ *  via its force-for-plugin output style, ponytail, etc.) — known limitation.
  */
 
 import { parseArgs } from "node:util";
@@ -18,8 +18,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PromiseQueue } from "../src/utils/pqueue";
 import { callClaude, type CallResult } from "../src/utils/claude";
+import { stripSkillMarkers } from "../src/utils/skill";
 
-const SCRIPT_VERSION = "1.3.0";
+const SCRIPT_VERSION = "1.3.1";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_DIR = join(HERE, "..");
 const PROMPTS_PATH = join(HERE, "prompts.json");
@@ -36,16 +37,7 @@ type Summary = { avg_savings: number; min_savings: number; max_savings: number; 
 
 const loadPrompts = (): Prompt[] => JSON.parse(readFileSync(PROMPTS_PATH, "utf8")).prompts;
 
-const loadSkimmableSystem = (): string => {
-  // Match src/hooks/skimmable-config.js: YAML frontmatter is stripped before
-  // the ruleset is injected, so benchmark what actually ships.
-  let content = readFileSync(SKILL_PATH, "utf8");
-  if (content.startsWith("---")) {
-    const parts = content.split("---");
-    if (parts.length >= 3) content = parts.slice(2).join("---");
-  }
-  return content;
-};
+const loadSkimmableSystem = (): string => stripSkillMarkers(readFileSync(SKILL_PATH, "utf8"));
 
 const sha256File = async (p: string) =>
   new Bun.CryptoHasher("sha256").update(await Bun.file(p).arrayBuffer()).digest("hex");

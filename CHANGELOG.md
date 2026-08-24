@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## v1.1.0 - 2026-08-23
 
-### 🔧 Improvements
+### ✨ Features
 
-- **Compaction refresh**: the full ruleset is re-injected after context compaction — Pi via the `session_compact` event, Claude via the existing SessionStart hook.
+- **Output style replaces hooks**: skimmable now uses Clade Code Output Styles.
+
+- **PERSONALITY.md**: the ruleset now lives in `PERSONALITY.md` for easy pasting into unsupported harnesses.
 
 ## v1.0.3 - 2026-08-13
 

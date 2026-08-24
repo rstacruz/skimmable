@@ -1,7 +1,8 @@
 ---
 name: skimmable
-description: >
-  Format every reply for skimmability: short sentences, lists over paragraphs, code blocks for illustration. Use when user says "skimmable", "reply skimmable", "use skimmable", or the plugin is installed.
+description: Every Claude Code reply formatted for skimmability: short sentences, lists over paragraphs, code blocks for illustration.
+keep-coding-instructions: true
+force-for-plugin: true
 ---
 
 ## Skimmable output style
