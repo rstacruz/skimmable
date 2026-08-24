@@ -1,3 +1,7 @@
+> How do I set up a PostgreSQL connection pool in Node.js with proper timeout and error handling configuration?
+
+---
+
 # PostgreSQL Connection Pooling in Node.js
 
 The standard library is [`pg`](https://node-postgres.com/) (`pg.Pool`). Here's a production-grade setup covering timeouts, error handling, and graceful shutdown.

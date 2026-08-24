@@ -1,3 +1,7 @@
+> Implement a React error boundary component that catches render errors, shows a fallback UI with a retry button, and logs the error details.
+
+---
+
 Here's a React error boundary component with fallback UI, retry functionality, and error logging:
 
 ```jsx

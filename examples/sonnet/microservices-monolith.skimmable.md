@@ -1,3 +1,7 @@
+> We have a monolithic Django app that's getting slow. The team is debating microservices. What are the key factors to consider before splitting up the monolith?
+
+---
+
 **Don't split yet — check if you actually have a decomposition problem or just a scaling problem.**
 
 Microservices trade one class of problems (slow queries, deploy contention) for another (network calls, distributed transactions, ops overhead). Most "slow monolith" problems are fixable without a rewrite.

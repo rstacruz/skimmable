@@ -1,3 +1,7 @@
+> We have a monolithic Django app that's getting slow. The team is debating microservices. What are the key factors to consider before splitting up the monolith?
+
+---
+
 Short version up front: **splitting for speed alone is usually a trap.** Distributed systems add network latency, serialization overhead, and coordination costs. If your monolith is slow, the fix is usually profiling, caching, and database work — not microservices. But there are legitimate reasons to split, and those are worth thinking through.
 
 Here's a practical framework for the decision:

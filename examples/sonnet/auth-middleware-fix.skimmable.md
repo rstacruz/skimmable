@@ -1,3 +1,7 @@
+> My Express auth middleware is letting expired JWT tokens through. The expiry check uses Date.now() compared to the token's exp field. What's wrong and how do I fix it?
+
+---
+
 **Bug: unit mismatch.** `exp` is seconds since epoch (JWT spec). `Date.now()` is milliseconds.
 
 Comparing them directly makes tokens look 1000x further from expiry than they are — expired tokens still pass.

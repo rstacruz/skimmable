@@ -1,3 +1,7 @@
+> Explain the difference between git rebase and git merge. When should I use each one and what are the tradeoffs?
+
+---
+
 # git rebase vs git merge
 
 Both integrate changes from one branch into another, but they do it differently.

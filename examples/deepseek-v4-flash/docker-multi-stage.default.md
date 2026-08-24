@@ -1,3 +1,7 @@
+> Write a multi-stage Dockerfile for a Node.js TypeScript application that minimizes the final image size. The app uses npm and needs to compile TypeScript before running.
+
+---
+
 Here's a multi-stage Dockerfile that keeps the final image lean: it uses a full Node image only for compiling, then builds a fresh production-only `node_modules` in a separate stage, and copies just the output + runtime deps into the final image.
 
 ```dockerfile

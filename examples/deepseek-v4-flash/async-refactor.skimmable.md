@@ -1,3 +1,15 @@
+> Refactor this callback-based Node.js function to use async/await:
+> 
+> function getUser(id, callback) {
+>   db.query('SELECT * FROM users WHERE id = ?', [id], function(err, rows) {
+>     if (err) return callback(err);
+>     if (!rows.length) return callback(new Error('Not found'));
+>     callback(null, rows[0]);
+>   });
+> }
+
+---
+
 **The function can't be awaited as-is — `db.query` is callback-based, so promisify it first.**
 
 ```js

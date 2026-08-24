@@ -1,3 +1,7 @@
+> Implement a React error boundary component that catches render errors, shows a fallback UI with a retry button, and logs the error details.
+
+---
+
 ```tsx
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 

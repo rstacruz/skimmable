@@ -1,3 +1,7 @@
+> Explain the difference between git rebase and git merge. When should I use each one and what are the tradeoffs?
+
+---
+
 **Rebase rewrites history; merge preserves it.**
 
 ## git merge

@@ -1,3 +1,7 @@
+> How do I set up a PostgreSQL connection pool in Node.js with proper timeout and error handling configuration?
+
+---
+
 ### Short answer
 
 **Use `pg`'s `Pool` with explicit timeouts (`connectionTimeoutMillis`, `query_timeout`, `statement_timeout`), a mandatory `pool.on('error')` listener for idle clients, and retry-with-backoff for transient Postgres error codes.**

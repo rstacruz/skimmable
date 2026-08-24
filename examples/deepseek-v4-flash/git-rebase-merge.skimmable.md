@@ -1,3 +1,7 @@
+> Explain the difference between git rebase and git merge. When should I use each one and what are the tradeoffs?
+
+---
+
 ## Git rebase vs merge — the short answer
 
 **Merge preserves history; rebase rewrites it. Use merge for public branches, rebase to clean up your own commits before pushing.**

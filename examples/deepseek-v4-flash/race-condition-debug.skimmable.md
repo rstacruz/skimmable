@@ -1,3 +1,7 @@
+> My Node.js API endpoint that increments a counter in PostgreSQL sometimes returns the same value for concurrent requests. How do I fix this race condition?
+
+---
+
 **The fix: replace the read-then-write with a single atomic `UPDATE`, and use `RETURNING` to get the new value.**
 
 Your current code probably looks like this — two concurrent requests can both read `5`, both compute `6`, and one increment is lost:

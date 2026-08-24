@@ -1,3 +1,7 @@
+> Implement a React error boundary component that catches render errors, shows a fallback UI with a retry button, and logs the error details.
+
+---
+
 Error boundaries must be class components — React only exposes the two lifecycle methods they rely on (`getDerivedStateFromError` and `componentDidCatch`) on classes, so there's no hook-based way to create one from scratch.
 
 Here's a full TypeScript implementation:

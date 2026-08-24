@@ -84,7 +84,11 @@ await Promise.all(
       console.log(`generating: ${p.id} ...`);
       try {
         const output = await callClaude(p.prompt, { model, bare, systemPrompt });
-        writeFileSync(outFile(p.id), output.text.trim() + "\n");
+        const question = p.prompt
+          .split("\n")
+          .map((line) => `> ${line}`)
+          .join("\n");
+        writeFileSync(outFile(p.id), `${question}\n\n---\n\n${output.text.trim()}\n`);
         console.log(`saved: ${outFile(p.id)}`);
       } catch (e) {
         console.error(`error: failed to generate ${p.id}, skipping (${e})`);

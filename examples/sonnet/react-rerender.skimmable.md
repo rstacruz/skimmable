@@ -1,3 +1,7 @@
+> Why is my React component re-rendering on every state update even though the props haven't changed? I'm passing an object as a prop.
+
+---
+
 **Object prop gets a new reference every render.**
 
 - Even with identical values, `{}` !== `{}` in JS

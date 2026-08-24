@@ -1,3 +1,7 @@
+> We have a monolithic Django app that's getting slow. The team is debating microservices. What are the key factors to consider before splitting up the monolith?
+
+---
+
 **Don't split to make it faster — microservices fix autonomy and independent scaling, not slowness. In a Django app, "slow" is almost always a query, index, or blocking-I/O problem, and splitting first adds network latency, distributed-data complexity, and ops burden.**
 
 ## The core question first
