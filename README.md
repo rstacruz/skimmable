@@ -75,11 +75,9 @@ curl -fsSL --create-dirs \
   -o ~/.omp/agent/PERSONALITY.md
 ```
 
-Oh-My-Pi reads `~/.omp/agent/PERSONALITY.md` as its personality block. It's a snapshot — re-run the command to update.
-
 ### All other agents
 
-For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md`.
+For other agents, install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md`.
 
 ## Usage
 
