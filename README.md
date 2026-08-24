@@ -73,11 +73,13 @@ pi install git:github.com/rstacruz/skimmable
 curl -fsSL --create-dirs \
   https://raw.githubusercontent.com/rstacruz/skimmable/main/PERSONALITY.md \
   -o ~/.omp/agent/PERSONALITY.md
+
+npx skills add rstacruz/skimmable
 ```
 
 ### All other agents
 
-For other agents, install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md`.
+For other agents, install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md`, and install skill with `npx skills add rstacruz/skimmable`.
 
 ## Usage
 
