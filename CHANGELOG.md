@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.2 - 2026-08-24
+
+### 🔧 Improvements
+
+- **Always-on formatting**: the "auto-clarity" exception is removed — skimmable formatting now applies to every reply, including security warnings and irreversible-action confirmations.
+
 ## v1.2.1 - 2026-08-24
 
 ### 🛠 Internal

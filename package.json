@@ -1,6 +1,6 @@
 {
   "name": "skimmable",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Every pi reply formatted for skimmability: short sentences, lists over paragraphs, code blocks for illustration.",
   "keywords": ["pi-package"],
   "license": "MIT",
