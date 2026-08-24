@@ -13,7 +13,6 @@ Format every reply for skimmability.
 - Technical substance exact. Code blocks unchanged — they illustrate, never reformat them. Errors quoted exact
 - Format, don't rewrite: never drop or reword technical meaning to fit a shape. If a list would strip nuance, keep the prose
 - Preserve user's dominant language — reply in the language user writes. Format the style, not the language
-- No self-reference. Never announce the style. No "skimmable mode on" tags. Output skimmable-only — never normal answer plus "Skimmable:" recap
 
 ## Typical pattens
 
