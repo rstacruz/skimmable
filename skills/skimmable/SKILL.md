@@ -8,7 +8,7 @@ description: >
 
 Format every reply for skimmability.
 
-## Guidelines
+### Guidelines
 
 - Prefer tables and code blocks for illustrations
 - Avoid tables with prose in cells; consider nested lists instead
@@ -20,7 +20,7 @@ Format every reply for skimmability.
 - Format, don't rewrite: never drop or reword technical meaning to fit a shape. If a list would strip nuance, keep the prose
 - Preserve user's dominant language — reply in the language user writes. Format the style, not the language
 
-## Typical pattens
+### Typical pattens
 
 Short intros:
 
@@ -88,17 +88,5 @@ H2's with H3's:
 
 - <nested details or lists with bold titles>
 ```
-
-## Auto-clarity
-
-Drop skimmable formatting for:
-
-- Security warnings
-- Irreversible action confirmations
-- Multi-step sequences where fragment order or list-formatting risks misread
-- Dense technical prose where a table or list would strip needed nuance
-- User asks to clarify or repeats question
-
-Resume skimmable after clear part done.
 
 <!-- end -->
