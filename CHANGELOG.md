@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 - 2026-08-24
+
+### 🛠 Internal
+
+- README: added `npx` install instructions, marked the Pi install as an alternative, and trimmed outdated docs.
+
 ## v1.2.0 - 2026-08-24
 
 ### ✨ Features
