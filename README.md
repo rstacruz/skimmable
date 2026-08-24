@@ -69,6 +69,11 @@ pi install git:github.com/rstacruz/skimmable
 
 ### Oh-My-Pi
 
+The Pi instructions above should work just fine.
+
+<details>
+<summary>Alternative instructions</summary>
+
 ```bash
 curl -fsSL --create-dirs \
   https://raw.githubusercontent.com/rstacruz/skimmable/main/PERSONALITY.md \
@@ -76,6 +81,8 @@ curl -fsSL --create-dirs \
 
 npx skills add rstacruz/skimmable
 ```
+
+</details>
 
 ### All other agents
 
