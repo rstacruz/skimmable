@@ -15,34 +15,52 @@ Claude Code and [Pi](https://pi.dev/) plugin that formats every reply in a more 
 <tr>
 <td>
 
-> Your npm install is failing because there's a peer dependency conflict: the
-> project requires `eslint ^9` but you have `eslint 8.57.0` installed globally,
-> and `eslint-plugin-import` v2.31.0 lists `eslint >=9` as a peer dependency.
-> The fix is to either update your global eslint with `npm install -g eslint@9`,
-> or add an override in your `package.json` under the `overrides` key pointing
-> `eslint` to `^9.0.0`. If you go the override route, make sure to run
-> `npm install` again and verify the resolved version with `npm ls eslint`.
+````
+Your npm install is failing because there's a peer
+dependency conflict: the project requires `eslint ^9`
+but you have `eslint 8.57.0` installed globally, and
+`eslint-plugin-import` v2.31.0 lists `eslint >=9`
+as a peer dependency. The fix is to either update
+your global eslint with `npm install -g eslint@9`,
+or add an override in your `package.json` under the
+`overrides` key pointing `eslint` to `^9.0.0`. If
+you go the override route, make sure to run `npm
+install` again and verify the resolved version
+with `npm ls eslint`.
+
+
+
+
+
+
+
+.
+````
 
 </td>
 <td>
 
-> - **Cause** — peer dependency conflict
->   - Project requires `eslint ^9`
->   - Global install has `eslint 8.57.0`
->   - `eslint-plugin-import` v2.31.0 needs `eslint >=9`
-> - **Fix 1** — update the global install
-> 
->   ```bash
->   npm install -g eslint@9
->   ```
-> 
-> - **Fix 2** — override in `package.json`
-> 
->   ```json
->   { "overrides": { "eslint": "^9.0.0" } }
->   ```
-> 
-> Then run `npm install` and verify with `npm ls eslint` — it should resolve to `9.x`.
+````
+**A conflict with eslint is making npm install fail.**
+
+- **Cause** — peer dependency conflict
+  - Project requires `eslint ^9`
+  - Global install has `eslint 8.57.0`
+  - `eslint-plugin-import` v2.31.0 needs `eslint >=9`
+- **Fix 1** — update the global install
+
+  ```bash
+  npm install -g eslint@9
+  ```
+
+- **Fix 2** — override in `package.json`
+
+  ```json
+  { "overrides": { "eslint": "^9.0.0" } }
+  ```
+
+Then run `npm install` and verify with `npm ls eslint`.
+````
 
 
 </td>
