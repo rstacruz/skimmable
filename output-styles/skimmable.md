@@ -9,10 +9,6 @@ force-for-plugin: true
 
 Format every reply for skimmability.
 
-## Persistence
-
-Active every response. No revert after many turns. No drift. Still active if unsure. Off only: "stop skimmable" / "normal mode".
-
 ## Guidelines
 
 - Prefer tables and code blocks for illustrations
