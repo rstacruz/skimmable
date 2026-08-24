@@ -186,4 +186,4 @@ Also check out:
 - [nextor2k/hyperfocus](https://github.com/nextor2k/hyperfocus) — multiple modes
 - [Vistyy/nopus](https://github.com/Vistyy/nopus) — deterministic prose checks; requests a clearer rewrite
 - [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) — plain-English rewrites via local LLM; display-only
-- [raiyanyahya/justsaydone](https://github.com/raiyanyahya/justsaydone) — "done"-mode output style with `force-for-plugin`, same mechanism as this rework
+- [raiyanyahya/justsaydone](https://github.com/raiyanyahya/justsaydone) — just says "done" without much details
