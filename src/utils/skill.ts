@@ -13,8 +13,15 @@
  * the file, the end marker at the end — no unanchored matches that could
  * truncate a body containing either marker.
  */
-export const stripSkillMarkers = (content: string): string =>
-  content
-    .replace(/^---[\s\S]*?---\s*/, "")
-    .replace(/^## Skimmable output style\r?\n\r?\n/, "")
-    .replace(/\r?\n<!-- end -->\r?\n?$/, "");
+/**
+ * Extract the synced "Skimmable output style" region from a
+ * PERSONALITY.md-style file, stripping the region markers. Falls back to
+ * the trimmed verbatim content when the markers are absent, so a
+ * hand-written ruleset file is injected as-is.
+ */
+export const extractRuleset = (content: string): string => {
+  const region = content.match(
+    /^## Skimmable output style\r?\n([\s\S]*?)\r?\n<!-- end -->/,
+  );
+  return (region?.[1] ?? content).trim();
+};

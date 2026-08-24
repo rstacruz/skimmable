@@ -81,11 +81,7 @@ For other agents, install the ruleset manually: copy [PERSONALITY.md](./PERSONAL
 
 ## Usage
 
-Nothing to do — skimmable is on from the first prompt of every fresh session.
-
-- **Turn it off** — say `stop skimmable` (or `normal mode`). Advisory: the toggle is instruction-following rather than a hard switch, so it may not hold for the entire session.
-- **Turn it back on** — say `skimmable`. Works mid-session, no restart.
-- **New session** — on again by default.
+Nothing to do — skimmable is always on; every reply is formatted.
 
 ## For Markdown files
 
@@ -99,8 +95,7 @@ Installing the plugin also installs the [skimmable](./skills/skimmable/SKILL.md)
 
 - **One canonical source** — the ruleset lives in [PERSONALITY.md](./PERSONALITY.md). `scripts/sync-files.sh` syncs it into the skill and the output style; CI runs the sync check on every push and PR.
 - **Claude output style** — the plugin ships `output-styles/skimmable.md` with `force-for-plugin: true`, so it auto-applies. The style lives in the system prompt (survives compaction) and carries built-in per-turn adherence reminders. It replaces the old SessionStart/UserPromptSubmit hooks.
-- **Toggle** — `stop skimmable` / `normal mode` are honored as instructions inside the style text.
-- **Pi** — the extension injects the same skill.
+- **Pi** — the extension appends the `PERSONALITY.md` ruleset to the system prompt on every turn — pi's analogue of oh-my-pi's `PERSONALITY.md`.
 - **Subagents** — the hooks used to run inside subagent sessions; output styles are main-conversation only, so subagents are no longer styled.
 
 ## Token cost

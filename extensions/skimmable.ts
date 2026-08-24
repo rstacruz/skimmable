@@ -1,86 +1,42 @@
 /**
  * skimmable — pi extension
+ *
+ * Emulates oh-my-pi's PERSONALITY.md mechanism for pi: the skimmable
+ * ruleset is appended to the system prompt on every turn. Always on —
+ * no toggle, no reminders, no compaction handling.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readFileSync } from "fs";
-import { homedir } from "os";
-import { join, resolve } from "path";
-import { stripSkillMarkers } from "../src/utils/skill";
-
-const STOP_RE = /\b(stop skimmable|disable skimmable|deactivate skimmable|skimmable off|normal mode)\b/i;
-const START_RE = /\b(skimmable( mode)?|reply skimmable|use skimmable|activate skimmable|write skimmable)\b/i;
+import { resolve } from "path";
+import { extractRuleset } from "../src/utils/skill";
 
 const FALLBACK_RULES =
   "Format every reply for skimmability: short sentences, " +
-  'lists over paragraphs, code blocks for illustration. Off only: "stop skimmable" / "normal mode".';
+  "lists over paragraphs, code blocks for illustration.";
 
-// Per-turn reminder when already on
-const REMINDER =
-  "SKIMMABLE ACTIVE — format replies for skimmability. " +
-  "Short sentences. Lists over paragraphs. Code blocks for illustration. " +
-  "Code, identifiers, paths, commands, URLs, error strings: verbatim.";
-
-function readSkill(): string {
-  const candidates = [
-    resolve(__dirname, "..", "skills", "skimmable", "SKILL.md"),
-    join(homedir(), ".pi", "agent", "skills", "skimmable", "SKILL.md"),
-  ];
-  for (const candidate of candidates) {
-    try {
-      return stripSkillMarkers(readFileSync(candidate, "utf8"));
-    } catch { /* try next */ }
+// Canonical source: PERSONALITY.md is the single source of truth
+// (AGENTS.md); the skill and output-style copies are generated from it.
+function readRules(): string {
+  try {
+    const rules = extractRuleset(
+      readFileSync(resolve(__dirname, "..", "PERSONALITY.md"), "utf8"),
+    );
+    if (rules) return rules;
+  } catch {
+    // missing/unreadable -> fallback below
   }
-  return "";
+  return FALLBACK_RULES;
 }
 
 export default function skimmable(pi: ExtensionAPI) {
-  let on = true; // fresh pi process = fresh session = skimmable ON
-  let needsRules = false; // set on compaction; consumed at next prompt
+  // Loaded once per session, mirroring oh-my-pi: the personality block is
+  // fixed when the session starts, keeping the system prompt cache-stable.
+  const rules = readRules();
 
-  // Compaction clears the system prompt, so re-inject the rules
-  pi.on("session_compact", () => {
-    needsRules = true;
-  });
-
-  pi.on("before_agent_start", async (event) => {
-    const prompt = event.prompt.trim().toLowerCase().replace(/\s+/g, " ");
-
-    const rules = readSkill() || FALLBACK_RULES;
-
-    // Shared injection path so activation and compaction refresh can't diverge
-    const withRules = (systemPrompt: string) =>
-      systemPrompt + "\n\nSKIMMABLE MODE ACTIVE\n\n" + rules;
-
-    if (STOP_RE.test(prompt)) {
-      on = false;
-      needsRules = false;
-      return {
-        message: {
-          customType: "skimmable",
-          content: "SKIMMABLE OFF — reply in normal format from now on.",
-          display: true,
-        },
-      };
-    }
-
-    if (START_RE.test(prompt)) {
-      on = true;
-      needsRules = false; // ruleset emitted below; don't double-inject
-      // Emit the full ruleset on the activation turn itself.
-      return { systemPrompt: withRules(event.systemPrompt) };
-    }
-
-    if (!on) return;
-
-    // After compaction, refresh once, then back to reminders
-    if (needsRules) {
-      needsRules = false;
-      return { systemPrompt: withRules(event.systemPrompt) };
-    }
-
-    // Per-turn reinforcement, so the style survives compaction — on Claude,
-    // the output style provides its own built-in per-turn reminders.
-    return { systemPrompt: event.systemPrompt + "\n\n" + REMINDER };
-  });
+  // Every turn, same suffix => byte-identical system prompt => warm provider
+  // prompt cache. Compaction replaces messages only, so nothing to refresh.
+  pi.on("before_agent_start", async (event) => ({
+    systemPrompt: event.systemPrompt + "\n\n" + rules,
+  }));
 }
