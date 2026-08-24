@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### ✨ Features
+
+- **Pi: skimmable is always on** — the ruleset (from `PERSONALITY.md`) is a permanent part of the system prompt, like oh-my-pi's `PERSONALITY.md`. Toggle and per-turn reminders removed.
+
 ## v1.1.0 - 2026-08-23
 
 ### ✨ Features
