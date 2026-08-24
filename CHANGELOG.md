@@ -5,7 +5,7 @@
 ### ✨ Features
 
 - **Output style replaces hooks**: skimmable now applies via a `force-for-plugin` output style (`output-styles/skimmable.md`) instead of the SessionStart/UserPromptSubmit hooks. The ruleset lives in the system prompt, survives compaction, and gets built-in per-turn adherence reminders. Subagent styling is dropped — output styles are main-conversation only.
-- **PERSONALITY.md as the single source of truth**: the ruleset now lives in `PERSONALITY.md`; 
+- **PERSONALITY.md as the single source of truth**: the ruleset now lives in `PERSONALITY.md` and is synced into `skills/skimmable/SKILL.md` and `output-styles/skimmable.md` via `npm run sync`.
 
 ## v1.0.3 - 2026-08-13
 
