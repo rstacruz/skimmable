@@ -3,7 +3,10 @@
   "version": "1.0.3",
   "description": "Every pi reply formatted for skimmability: short sentences, lists over paragraphs, code blocks for illustration.",
   "keywords": ["pi-package"],
-  "license": "MIT",
+  "scripts": {
+    "sync": "./scripts/sync-files.sh",
+    "check": "./scripts/sync-files.sh --check"
+  },
   "pi": {
     "extensions": ["./extensions"],
     "skills": ["./skills"]

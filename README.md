@@ -61,8 +61,6 @@ claude plugin marketplace add https://github.com/rstacruz/skimmable && claude pl
 
 Update to a new version with `/plugin marketplace update`.
 
-Output styles take effect in a new session — run `/clear` or start a fresh session after installing. Requires a Claude Code version with plugin output-style support (`force-for-plugin`); on older versions, copy `output-styles/skimmable.md` into `~/.claude/output-styles/` and select it via `/config`.
-
 ### Pi
 
 ```bash
@@ -81,7 +79,7 @@ Oh-My-Pi reads `~/.omp/agent/PERSONALITY.md` as its personality block. It's a sn
 
 ### All other agents
 
-For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md` — the `## Skimmable output style` / `<!-- end -->` markers mark the section to keep.
+For other agents, it doesn't auto-enable, but you can install the ruleset manually: copy [PERSONALITY.md](./PERSONALITY.md) into your global `AGENTS.md`.
 
 ## Usage
 

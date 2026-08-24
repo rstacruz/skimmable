@@ -12,7 +12,7 @@ two generated copies:
 **Never edit those regions directly.** Edit `PERSONALITY.md`, then run:
 
 ```bash
-just sync
+npm run sync
 ```
 
-`just check` — and CI (`sync-check` workflow) — fail when the copies drift.
+`npm run check` — and CI (`sync-check` workflow) — fail when the copies drift.
